@@ -17,3 +17,9 @@ class ProductPrice(models.Model):
     discount = models.SmallIntegerField()
     set_at = models.DateTimeField(auto_now_add=True)
 
+
+class ProductAttribute(models.Model):
+    product = models.ForeignKey(Product, models.CASCADE)
+    name = models.CharField(max_length=30)
+    value = models.CharField(max_length=50)
+
