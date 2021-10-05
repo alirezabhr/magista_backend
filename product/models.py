@@ -23,3 +23,15 @@ class ProductAttribute(models.Model):
     name = models.CharField(max_length=30)
     value = models.CharField(max_length=50)
 
+
+class Order(models.Model):
+    # payer = models.ForeignKey(User, models.PROTECT)
+    status = models.SmallIntegerField()
+    updated_at = models.DateTimeField(auto_now=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+
+class OrderItem(models.Model):
+    order = models.ForeignKey(Order, models.PROTECT)
+    product_price = models.ForeignKey(ProductPrice, models.PROTECT)
+    quantity = models.PositiveSmallIntegerField()
