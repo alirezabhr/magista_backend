@@ -10,7 +10,7 @@ class CustomUserManager(UserManager):
         extra_fields.setdefault('is_superuser', True)
 
         if phone is None:
-            raise TypeError('Superuser must have username')
+            raise TypeError('Superuser must have phone number')
         if extra_fields.get('is_staff') is not True:
             raise ValueError('Superuser must have is_staff=True.')
         if extra_fields.get('is_superuser') is not True:
@@ -20,7 +20,7 @@ class CustomUserManager(UserManager):
 
     def create_user(self, phone, password=None, **extra_fields):
         if phone is None:
-            raise TypeError('Seller users must have a phone number.')
+            raise TypeError('users must have a phone number.')
         seller = User(username=phone, phone=phone, **extra_fields)
         seller.set_password(password)
         seller.save()
@@ -45,4 +45,4 @@ class Shop(models.Model):
     province = models.CharField(max_length=30)
     city = models.CharField(max_length=30)
     # profile_pic = models.ImageField()
-    date_joined = models.DateTimeField(auto_now=True)
+    created_at = models.DateTimeField(auto_now_add=True)
