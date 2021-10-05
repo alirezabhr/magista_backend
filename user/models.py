@@ -46,3 +46,10 @@ class Shop(models.Model):
     city = models.CharField(max_length=30)
     # profile_pic = models.ImageField()
     created_at = models.DateTimeField(auto_now_add=True)
+
+
+class Customer(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    province = models.CharField(max_length=30, null=True)
+    city = models.CharField(max_length=30, null=True)
+    address = models.TextField(null=True)
