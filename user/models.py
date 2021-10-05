@@ -36,3 +36,13 @@ class User(AbstractUser):
 
     def __str__(self):
         return self.username
+
+
+class Shop(models.Model):
+    vendor = models.ForeignKey(User, on_delete=models.CASCADE)
+    email = models.EmailField()
+    instagram_id = models.CharField(max_length=30)
+    province = models.CharField(max_length=30)
+    city = models.CharField(max_length=30)
+    # profile_pic = models.ImageField()
+    date_joined = models.DateTimeField(auto_now=True)
