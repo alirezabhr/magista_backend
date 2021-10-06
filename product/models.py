@@ -25,6 +25,17 @@ class ProductAttribute(models.Model):
     value = models.CharField(max_length=50)
 
 
+class Discount(models.Model):
+    product = models.ForeignKey(Product, models.PROTECT, null=True)
+    percent = models.PositiveSmallIntegerField()
+    description = models.CharField(max_length=300, blank=True)
+    is_active = models.BooleanField(default=True)
+    start_at = models.DateTimeField()
+    end_at = models.DateTimeField(null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    disabled_at = models.DateTimeField(null=True)
+
+
 class Order(models.Model):
     # payer = models.ForeignKey(User, models.PROTECT)
     status = models.SmallIntegerField()
