@@ -35,7 +35,7 @@ class User(AbstractUser):
     USERNAME_FIELD = 'phone'
 
     def __str__(self):
-        return self.username
+        return f'{self.id}: {self.username}'
 
 
 class Shop(models.Model):
@@ -47,9 +47,15 @@ class Shop(models.Model):
     # profile_pic = models.ImageField()
     created_at = models.DateTimeField(auto_now_add=True)
 
+    def __str__(self):
+        return f'{self.id}: {self.vendor.username} | {self.instagram_id}'
+
 
 class Customer(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     province = models.CharField(max_length=30, null=True)
     city = models.CharField(max_length=30, null=True)
     address = models.TextField(null=True)
+
+    def __str__(self):
+        return f'{self.id}: {self.user.username}'
