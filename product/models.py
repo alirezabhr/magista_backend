@@ -15,7 +15,6 @@ class Product(models.Model):
 class ProductPrice(models.Model):
     product = models.ForeignKey(Product, models.PROTECT)
     price = models.IntegerField()
-    discount = models.SmallIntegerField()
     set_at = models.DateTimeField(auto_now_add=True)
 
 
