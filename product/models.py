@@ -8,6 +8,7 @@ class Product(models.Model):
     description = models.TextField()
     instagram_link = models.CharField(max_length=70, blank=True)
     rate = models.PositiveSmallIntegerField()
+    is_existing = models.BooleanField(default=True)
     updated_at = models.DateTimeField(auto_now=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
