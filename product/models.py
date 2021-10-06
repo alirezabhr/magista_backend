@@ -5,6 +5,7 @@ from django.db import models
 class Product(models.Model):
     # shop = models.ForeignKey(Shop, models.PROTECT)
     title = models.CharField(max_length=100, blank=True)
+    description = models.TextField()
     instagram_link = models.CharField(max_length=70, blank=True)
     rate = models.PositiveSmallIntegerField()
     updated_at = models.DateTimeField(auto_now=True)
