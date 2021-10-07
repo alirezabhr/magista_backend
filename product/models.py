@@ -1,9 +1,12 @@
 from django.db import models
 
+from user.models import Shop, Customer
+
 
 # Create your models here.
 class Product(models.Model):
-    # shop = models.ForeignKey(Shop, models.PROTECT)
+    shop = models.ForeignKey(Shop, models.PROTECT)
+    shortcode = models.CharField(max_length=15)
     title = models.CharField(max_length=100, blank=True)
     description = models.TextField()
     instagram_link = models.CharField(max_length=70, blank=True)
@@ -37,7 +40,7 @@ class Discount(models.Model):
 
 
 class Order(models.Model):
-    # payer = models.ForeignKey(User, models.PROTECT)
+    customer = models.ForeignKey(Customer, models.PROTECT)
     status = models.SmallIntegerField()
     updated_at = models.DateTimeField(auto_now=True)
     created_at = models.DateTimeField(auto_now_add=True)
