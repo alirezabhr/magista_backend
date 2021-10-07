@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     'rest_framework_jwt',
     # local apps
     'user',
+    'product',
 ]
 
 MIDDLEWARE = [
