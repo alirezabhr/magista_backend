@@ -41,10 +41,11 @@ class User(AbstractUser):
 class Shop(models.Model):
     vendor = models.ForeignKey(User, on_delete=models.CASCADE)
     email = models.EmailField()
-    instagram_id = models.CharField(max_length=30, unique=True)
+    instagram_username = models.CharField(max_length=30, unique=True)
+    instagram_id = models.IntegerField(unique=True)
     province = models.CharField(max_length=30)
     city = models.CharField(max_length=30)
-    # profile_pic = models.ImageField()
+    profile_pic = models.ImageField(f'{vendor.phone}/shop/{instagram_id}/')
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
