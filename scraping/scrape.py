@@ -2,6 +2,7 @@ import requests
 import json
 import hashlib
 import sys
+import datetime
 
 from constants import *
 
@@ -136,7 +137,7 @@ class Scraper:
         }
         return new_node
 
-    def get_media(self, user):
+    def put_media_data_in_file(self, user):
         username = user['username']
         file_name = f'{username}_media_query.json'
         file = open(file_name, 'w', encoding='utf-8')
@@ -145,3 +146,40 @@ class Scraper:
         file.write(json.dumps(posts, indent=4, ensure_ascii=False))
 
         file.close()
+
+
+def scrape(username):
+    print('step1', datetime.datetime.now())
+
+    scraper = Scraper(login_user='tmp_magista', login_pass='mehdiali1400')
+    scraper.authenticate_with_login()
+    page_info_url = USER_URL.format(username)
+
+    print('step2', datetime.datetime.now())
+    data = scraper.get_data(page_info_url)
+
+    try:
+        user_info = json.loads(data)['graphql']['user']
+    except:
+        logger('cant get user info')
+        return
+
+    if user_info['is_private']:
+        print('Private Page')
+        return
+
+    profile_info = {
+        'username': username,
+        'id': user_info['id'],
+        'is_private': user_info['is_private'],
+        'posts_count': user_info['edge_owner_to_timeline_media']['count'],
+        'profile_pic_url': user_info['profile_pic_url'],
+        'is_business_account': user_info['is_business_account'],
+        'is_professional_account': user_info['is_professional_account'],
+        'category_enum': user_info['category_enum'],
+        'category_name': user_info['category_name'],
+    }
+
+    print('step3', datetime.datetime.now())
+    scraper.put_media_data_in_file(profile_info)
+    print('step4', datetime.datetime.now())
