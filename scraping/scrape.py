@@ -1,5 +1,7 @@
 import requests
 import json
+import hashlib
+import sys
 
 from constants import *
 
@@ -57,3 +59,54 @@ class Scraper:
                 self.logged_in = False
             except requests.exceptions.RequestException:
                 logger('Failed to log out ' + self.username)
+
+    def get_data(self, url):
+        response = self.session.get(url=url, timeout=CONNECT_TIMEOUT, cookies=self.cookies)
+        if response.status_code == 200:
+            return response.text
+        elif response.status_code == 404:
+            logger('page not found')
+        else:
+            print(response.status_code)
+
+    def query_media_gen(self, user_id, end_cursor=''):
+        """Generator for media."""
+        media, end_cursor = self.__query_media(user_id, end_cursor)
+
+        if media:
+            try:
+                while True:
+                    for item in media:
+                        # if not self.is_new_media(item):
+                        #     return
+                        yield item
+
+                    if end_cursor:
+                        media, end_cursor = self.__query_media(user_id, end_cursor)
+                    else:
+                        return
+            except ValueError:
+                logger('Failed to query media for user ' + user_id)
+
+    def __query_media(self, ig_id, end_cursor=''):
+        params = QUERY_MEDIA_VARS.format(ig_id, end_cursor)
+        self.update_ig_gis_header(params)
+
+        resp = self.get_data(QUERY_MEDIA.format(params))
+
+        if resp is not None:
+            payload = json.loads(resp)['data']['user']
+            if payload:
+                container = payload['edge_owner_to_timeline_media']
+                nodes = self._get_nodes(container)
+                end_cursor = container['page_info']['end_cursor']
+                return nodes, end_cursor
+
+        return None, None
+
+
+
+    def _get_nodes(self, container):
+        return [node['node'] for node in container['edges']]
+        # return [self.__change_node(node['node']) for node in container['edges']]
+
