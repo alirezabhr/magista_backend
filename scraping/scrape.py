@@ -122,3 +122,26 @@ class Scraper:
     def _get_nodes(self, container):
         return [node['node'] for node in container['edges']]
         # return [self.__change_node(node['node']) for node in container['edges']]
+
+    def __change_node(self, node):
+        new_node = {
+            "id": node['id'],
+            "__typename": node['__typename'],
+            "caption": node['edge_media_to_caption']['edges'][0]['node']['text'],
+            "shortcode": node['shortcode'],
+            "display_url": node['display_url'],
+            "thumbnail_src": node['thumbnail_src'],
+            "thumbnail_resources": node['thumbnail_resources'],
+            "is_video": node['is_video']
+        }
+        return new_node
+
+    def get_media(self, user):
+        username = user['username']
+        file_name = f'{username}_media_query.json'
+        file = open(file_name, 'w', encoding='utf-8')
+
+        posts = [post for post in self.query_media_gen(user_id=user['id'])]
+        file.write(json.dumps(posts, indent=4, ensure_ascii=False))
+
+        file.close()
