@@ -104,9 +104,21 @@ class Scraper:
 
         return None, None
 
+    def get_ig_gis(self, rhx_gis, params):
+        data = rhx_gis + ":" + params
+        if sys.version_info.major >= 3:
+            return hashlib.md5(data.encode('utf-8')).hexdigest()
+        else:
+            return hashlib.md5(data).hexdigest()
 
+    def update_ig_gis_header(self, params):
+        self.session.headers.update({
+            'x-instagram-gis': self.get_ig_gis(
+                self.rhx_gis,
+                params
+            )
+        })
 
     def _get_nodes(self, container):
         return [node['node'] for node in container['edges']]
         # return [self.__change_node(node['node']) for node in container['edges']]
-
