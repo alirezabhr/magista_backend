@@ -7,6 +7,8 @@ from rest_framework_jwt.serializers import JSONWebTokenSerializer
 from .models import User
 from .serializers import UserSerializer, ShopSerializer, CustomerSerializer
 
+from scraping import scrape
+
 
 # Create your views here.
 class UserSignupView(APIView):
@@ -16,8 +18,13 @@ class UserSignupView(APIView):
     def post(self, request):
         ser = self.serializer_class(data=request.data)
         if ser.is_valid():
-            ser.save()
-            return Response(ser.data, status=status.HTTP_201_CREATED)
+            user = ser.save()
+            password = self.request.data.get("password")
+            token_serializer = JSONWebTokenSerializer(data={"phone": user.phone, "password": password})
+            token_serializer.is_valid(raise_exception=True)
+            response_data = ser.data
+            response_data.update({"token": token_serializer.validated_data.get("token")})
+            return Response(response_data, status=status.HTTP_201_CREATED)
         else:
             return Response(ser.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -33,12 +40,9 @@ class UserLoginView(APIView):
         if token_serializer.is_valid():
             user = self.query_set.get(phone=request.data.get("phone"))
             ser = self.serializer_class(user)
-
-            result = {
-                "token": token_serializer.validated_data.get("token"),
-                "user": ser.data,
-            }
-            return Response(result, status=status.HTTP_200_OK)
+            response_data = ser.data
+            response_data.update({"token": token_serializer.validated_data.get("token")})
+            return Response(response_data, status=status.HTTP_200_OK)
         else:
             return Response(token_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -65,3 +69,23 @@ class ShopView(APIView):
             return Response(ser.data, status=status.HTTP_201_CREATED)
         else:
             return Response(ser.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class UserMediaView(APIView):
+    def get(self, request):
+        try:
+            instagram_username = request.data['instagram_username']
+        except KeyError:
+            response = {
+                'error': 'instagram username is required'
+            }
+            return Response(response, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            response_data = scrape.scrape_instagram_media(instagram_username)
+            return Response(response_data, status=status.HTTP_200_OK)
+        except scrape.CustomException as ex:
+            response = {"error": ex.message}
+            return Response(response, status=ex.status)
+        except:
+            return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
