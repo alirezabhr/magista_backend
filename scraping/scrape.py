@@ -2,15 +2,20 @@ import requests
 import json
 import hashlib
 import sys
-import datetime
 
-from constants import *
+from .constants import *
 
 
 def logger(message):
     print('----------\n')
     print(message)
     print('\n----------')
+
+
+class CustomException(Exception):
+    def __init__(self, status, message):
+        self.status = status
+        self.message = message
 
 
 class Scraper:
@@ -48,7 +53,7 @@ class Scraper:
             self.rhx_gis = ""
         else:
             logger('Login failed for ' + self.username)
-            raise Exception('problem in authenticate_with_login')
+            raise CustomException(500, 'Login failed')
 
     def logout(self):
         """Logs out of instagram."""
@@ -67,8 +72,14 @@ class Scraper:
             return response.text
         elif response.status_code == 404:
             logger('page not found')
+            raise CustomException(404, "page not found")
         else:
-            print(response.status_code)
+            logger('something bad happened in get_data function')
+            error_data = {
+                'status_code': response.status_code,
+                'text': response.text
+            }
+            raise CustomException(500, error_data)
 
     def query_media_gen(self, user_id, end_cursor=''):
         """Generator for media."""
@@ -88,6 +99,7 @@ class Scraper:
                         return
             except ValueError:
                 logger('Failed to query media for user ' + user_id)
+                raise CustomException(500, 'Failed to query media for user ' + user_id)
 
     def __query_media(self, ig_id, end_cursor=''):
         params = QUERY_MEDIA_VARS.format(ig_id, end_cursor)
@@ -137,25 +149,22 @@ class Scraper:
         }
         return new_node
 
-    def put_media_data_in_file(self, user):
-        username = user['username']
-        file_name = f'{username}_media_query.json'
-        file = open(file_name, 'w', encoding='utf-8')
-
+    def get_media_data(self, user):
         posts = [post for post in self.query_media_gen(user_id=user['id'])]
-        file.write(json.dumps(posts, indent=4, ensure_ascii=False))
-
-        file.close()
+        return posts
 
 
-def scrape(username):
-    print('step1', datetime.datetime.now())
+def write_file(file_name, data):
+    file = open(file_name, 'w', encoding='utf-8')
+    file.write(data)
+    file.close()
 
-    scraper = Scraper(login_user='tmp_magista', login_pass='mehdiali1400')
+
+def scrape_instagram_media(username):
+    scraper = Scraper(login_user='tmp_magista', login_pass='magista1400')
     scraper.authenticate_with_login()
     page_info_url = USER_URL.format(username)
 
-    print('step2', datetime.datetime.now())
     data = scraper.get_data(page_info_url)
 
     try:
@@ -166,7 +175,7 @@ def scrape(username):
 
     if user_info['is_private']:
         print('Private Page')
-        return
+        raise CustomException(400, "Your page is private")
 
     profile_info = {
         'username': username,
@@ -180,6 +189,8 @@ def scrape(username):
         'category_name': user_info['category_name'],
     }
 
-    print('step3', datetime.datetime.now())
-    scraper.put_media_data_in_file(profile_info)
-    print('step4', datetime.datetime.now())
+    user_posts_data = scraper.get_media_data(profile_info)
+    file_name = f'{username}_media_query.json'
+    json_media_data = json.dumps(user_posts_data, indent=4, ensure_ascii=False)
+    write_file(file_name, json_media_data)
+    return json_media_data
