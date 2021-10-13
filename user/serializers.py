@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from .models import User, Shop, Customer
+from .models import User, Shop, Customer, Otp
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -33,4 +33,10 @@ class ShopSerializer(serializers.ModelSerializer):
 class CustomerSerializer(serializers.ModelSerializer):
     class Meta:
         model = Customer
+        fields = '__all__'
+
+
+class OtpSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Otp
         fields = '__all__'
