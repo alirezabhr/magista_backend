@@ -64,5 +64,5 @@ class Customer(models.Model):
 
 class Otp(models.Model):
     phone = models.CharField(max_length=11)
-    otp_code = models.CharField(max_length=5)
+    otp_code = models.IntegerField()
     created_at = models.DateTimeField(auto_now_add=True)
