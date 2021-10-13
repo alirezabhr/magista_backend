@@ -1,14 +1,17 @@
+import random
+
+from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework_jwt.serializers import JSONWebTokenSerializer
 
-from .models import User
-from .serializers import UserSerializer, ShopSerializer, CustomerSerializer
+from .models import User, Otp
+from .serializers import UserSerializer, ShopSerializer, CustomerSerializer, OtpSerializer
 
 from scraping import scrape
-
+from sms_service.sms_service import *
 
 # Create your views here.
 class UserSignupView(APIView):
@@ -89,3 +92,32 @@ class UserMediaView(APIView):
             return Response(response, status=ex.status)
         except:
             return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class OtpView(APIView):
+    query_set = Otp.objects.all()
+    serializer_class = OtpSerializer
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        try:
+            phone = request.data['phone']
+        except KeyError:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+
+
+
+        data = {
+            "phone": phone,
+            "otp_code": None,
+        }
+        ser = self.serializer_class(data)
+        ser.is_valid(raise_exception=True)
+        return Response(status=status.HTTP_200_OK)
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def check_otp(request):
+    SMSService().send_otp("0917", 1002)
+    return Response(status=status.HTTP_200_OK)
