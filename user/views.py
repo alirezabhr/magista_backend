@@ -15,25 +15,28 @@ from utils import utils
 
 
 # Create your views here.
-class UserSignupView(APIView):
-    serializer_class = UserSerializer
+class UserView(APIView):
     permission_classes = [AllowAny]
     query_set = User.objects.all()
 
-    def post(self, request):
-        ser = self.serializer_class(data=request.data)
-        if ser.is_valid():
-            user = ser.save()
-            password = self.request.data.get("password")
-            token_serializer = JSONWebTokenSerializer(data={"phone": user.phone, "password": password})
-            token_serializer.is_valid(raise_exception=True)
-            response_data = ser.data
-            response_data.update({"token": token_serializer.validated_data.get("token")})
-            return Response(response_data, status=status.HTTP_201_CREATED)
-        else:
-            return Response(ser.errors, status=status.HTTP_400_BAD_REQUEST)
+    def get(self, request):     # check user existence
+        response = {}
 
-    def put(self, request):
+        try:
+            phone = request.data['phone']
+        except KeyError:
+            response["phone"] = ["This field is required."]
+            return Response(response, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            self.query_set.get(phone=phone)
+            response['success'] = 'user exists.'
+            return Response(response, status=status.HTTP_302_FOUND)
+        except User.DoesNotExist:
+            response['error'] = 'user does not exist.'
+            return Response(response, status=status.HTTP_404_NOT_FOUND)
+
+    def put(self, request):     # change user password
         response = {}
 
         try:
@@ -53,6 +56,25 @@ class UserSignupView(APIView):
         user.save()
         response['success'] = 'password has been changed successfully.'
         return Response(response, status=status.HTTP_200_OK)
+
+
+class UserSignupView(APIView):
+    serializer_class = UserSerializer
+    permission_classes = [AllowAny]
+    query_set = User.objects.all()
+
+    def post(self, request):
+        ser = self.serializer_class(data=request.data)
+        if ser.is_valid():
+            user = ser.save()
+            password = self.request.data.get("password")
+            token_serializer = JSONWebTokenSerializer(data={"phone": user.phone, "password": password})
+            token_serializer.is_valid(raise_exception=True)
+            response_data = ser.data
+            response_data.update({"token": token_serializer.validated_data.get("token")})
+            return Response(response_data, status=status.HTTP_201_CREATED)
+        else:
+            return Response(ser.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class UserLoginView(APIView):
@@ -121,8 +143,8 @@ def send_otp_view(request):
     try:
         phone = request.data['phone']
     except KeyError:
-        resp = {"phone": ["This field is required."]}
-        return Response(resp, status=status.HTTP_400_BAD_REQUEST)
+        response = {"phone": ["This field is required."]}
+        return Response(response, status=status.HTTP_400_BAD_REQUEST)
 
     otp_code = random.randint(10000, 99999)
     # TODO send otp with sms service
