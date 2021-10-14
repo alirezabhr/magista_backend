@@ -66,3 +66,6 @@ class Otp(models.Model):
     phone = models.CharField(max_length=11)
     otp_code = models.IntegerField()
     created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f'{self.id}: {self.phone}'
