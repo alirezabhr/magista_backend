@@ -11,7 +11,7 @@ from .models import User, Otp
 from .serializers import UserSerializer, ShopSerializer, CustomerSerializer, OtpSerializer
 
 from scraping import scrape
-from sms_service.sms_service import *
+from utils import utils
 
 # Create your views here.
 class UserSignupView(APIView):
@@ -94,30 +94,53 @@ class UserMediaView(APIView):
             return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-class OtpView(APIView):
-    query_set = Otp.objects.all()
-    serializer_class = OtpSerializer
-    permission_classes = [AllowAny]
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def send_otp_view(request):
+    try:
+        phone = request.data['phone']
+    except KeyError:
+        resp = {"phone": ["This field is required."]}
+        return Response(resp, status=status.HTTP_400_BAD_REQUEST)
 
-    def post(self, request):
-        try:
-            phone = request.data['phone']
-        except KeyError:
-            return Response(status=status.HTTP_400_BAD_REQUEST)
-
-
-
-        data = {
-            "phone": phone,
-            "otp_code": None,
-        }
-        ser = self.serializer_class(data)
-        ser.is_valid(raise_exception=True)
-        return Response(status=status.HTTP_200_OK)
+    otp_code = random.randint(10000, 99999)
+    # TODO send otp with sms service
+    data = {
+        "phone": phone,
+        "otp_code": otp_code,
+    }
+    ser = OtpSerializer(data=data)
+    ser.is_valid(raise_exception=True)
+    ser.save()
+    response = ser.data
+    response.pop("otp_code")
+    return Response(response, status=status.HTTP_201_CREATED)
 
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
-def check_otp(request):
-    SMSService().send_otp("0917", 1002)
-    return Response(status=status.HTTP_200_OK)
+def check_otp_view(request):
+    ser = OtpSerializer(data=request.data)
+    if not ser.is_valid():
+        return Response(ser.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    objects = Otp.objects.filter(phone=request.data['phone'])
+    response = {}
+
+    if len(objects) == 0:
+        response['error'] = 'phone not found.'
+        return Response(response, status=status.HTTP_404_NOT_FOUND)
+
+    obj = objects.last()
+
+    if obj.otp_code == request.data['otp_code']:
+        valid_time = utils.is_expired_otp(obj.created_at)
+
+        if not valid_time:
+            response['error'] = 'otp code has been expired.'
+            return Response(response, status=status.HTTP_406_NOT_ACCEPTABLE)
+
+        return Response(status=status.HTTP_200_OK)
+    else:
+        response['error'] = 'otp code is not correct.'
+        return Response(response, status=status.HTTP_400_BAD_REQUEST)
