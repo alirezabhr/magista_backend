@@ -11,6 +11,7 @@ from .models import User, Otp
 from .serializers import UserSerializer, ShopSerializer, CustomerSerializer, OtpSerializer
 
 from scraping import scrape
+from sms_service.sms_service import SMSService
 from utils import utils
 
 
@@ -19,7 +20,7 @@ class UserView(APIView):
     permission_classes = [AllowAny]
     query_set = User.objects.all()
 
-    def get(self, request):     # check user existence
+    def get(self, request):  # check user existence
         response = {}
 
         try:
@@ -36,7 +37,7 @@ class UserView(APIView):
             response['error'] = 'user does not exist.'
             return Response(response, status=status.HTTP_404_NOT_FOUND)
 
-    def put(self, request):     # change user password
+    def put(self, request):  # change user password
         response = {}
 
         try:
@@ -140,14 +141,23 @@ class UserMediaView(APIView):
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def send_otp_view(request):
+    response = {}
+
     try:
         phone = request.data['phone']
     except KeyError:
-        response = {"phone": ["This field is required."]}
+        response["phone"] = ["This field is required."]
         return Response(response, status=status.HTTP_400_BAD_REQUEST)
 
     otp_code = random.randint(10000, 99999)
-    # TODO send otp with sms service
+
+    # try:
+    #     SMSService().send_otp(phone=phone, otp=otp_code)
+    # except Exception as e:
+    #     print(e)
+    #     response['error'] = "problem in sending otp sms"
+    #     return Response(response, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
     data = {
         "phone": phone,
         "otp_code": otp_code,
