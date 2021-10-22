@@ -42,3 +42,11 @@ class OtpSerializer(serializers.ModelSerializer):
     class Meta:
         model = Otp
         fields = '__all__'
+
+
+class UserPhoneSerializer(serializers.ModelSerializer):
+    phone = serializers.CharField(max_length=11)
+
+    class Meta:
+        fields = ['phone']
+        model = User
