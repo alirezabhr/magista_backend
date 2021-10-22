@@ -54,8 +54,9 @@ class Shop(models.Model):
 
 class Customer(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
-    province = models.CharField(max_length=30, null=True)
-    city = models.CharField(max_length=30, null=True)
+    name = models.CharField(max_length=50)
+    province = models.CharField(max_length=30)
+    city = models.CharField(max_length=30)
     address = models.TextField(null=True)
 
     def __str__(self):
