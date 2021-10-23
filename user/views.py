@@ -7,7 +7,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework_jwt.serializers import JSONWebTokenSerializer
 
-from .models import User, Otp
+from .models import User, Otp, Shop
 from .serializers import UserSerializer, ShopSerializer, CustomerSerializer, OtpSerializer, UserPhoneSerializer
 
 from scraping import scrape
@@ -114,14 +114,20 @@ class CustomerView(APIView):
 
 class ShopView(APIView):
     serializer_class = ShopSerializer
+    query_set = Shop.objects.all()
 
-    def post(self, request):
+    def post(self, request, pk):
         ser = self.serializer_class(data=request.data)
         if ser.is_valid():
             ser.save()
             return Response(ser.data, status=status.HTTP_201_CREATED)
         else:
             return Response(ser.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def get(self, request, pk):
+        shops = self.query_set.filter(vendor_id=pk)
+        ser = self.serializer_class(shops, many=True)
+        return Response(ser.data, status=status.HTTP_200_OK)
 
 
 class UserMediaView(APIView):
