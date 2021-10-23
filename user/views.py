@@ -8,7 +8,7 @@ from rest_framework import status
 from rest_framework_jwt.serializers import JSONWebTokenSerializer
 
 from .models import User, Otp
-from .serializers import UserSerializer, ShopSerializer, CustomerSerializer, OtpSerializer
+from .serializers import UserSerializer, ShopSerializer, CustomerSerializer, OtpSerializer, UserPhoneSerializer
 
 from scraping import scrape
 from sms_service.sms_service import SMSService
@@ -20,22 +20,22 @@ class UserView(APIView):
     permission_classes = [AllowAny]
     query_set = User.objects.all()
 
-    def get(self, request):  # check user existence
+    def post(self, request):  # check user existence
         response = {}
 
-        try:
-            phone = request.data['phone']
-        except KeyError:
-            response["phone"] = ["This field is required."]
-            return Response(response, status=status.HTTP_400_BAD_REQUEST)
+        ser = UserPhoneSerializer(data=request.data)
+        if not ser.is_valid():
+            return Response(ser.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        phone = ser.data.get('phone')
 
         try:
             self.query_set.get(phone=phone)
-            response['success'] = 'user exists.'
-            return Response(response, status=status.HTTP_302_FOUND)
+            response['user'] = 'found'
+            return Response(response, status=status.HTTP_200_OK)
         except User.DoesNotExist:
-            response['error'] = 'user does not exist.'
-            return Response(response, status=status.HTTP_404_NOT_FOUND)
+            response['user'] = 'not found'
+            return Response(response, status=status.HTTP_200_OK)
 
     def put(self, request):  # change user password
         response = {}
@@ -43,19 +43,23 @@ class UserView(APIView):
         try:
             phone = request.data['phone']
             password = request.data['password']
-        except KeyError:
-            response['error'] = "phone and password are required."
-            return Response(response, status=status.HTTP_400_BAD_REQUEST)
-
-        try:
             user = self.query_set.get(phone=phone)
+        except KeyError:
+            response['error'] = ["شماره موبایل و رمز عبور الزامی است."]
+            return Response(response, status=status.HTTP_400_BAD_REQUEST)
         except User.DoesNotExist:
-            response['error'] = 'user with this phone number does not exist.'
+            response['error'] = ["کاربری با این شماره وجود ندارد."]
             return Response(response, status=status.HTTP_404_NOT_FOUND)
 
         user.set_password(raw_password=password)
         user.save()
-        response['success'] = 'password has been changed successfully.'
+
+        ser = UserSerializer(user)
+        token_serializer = JSONWebTokenSerializer(data={"phone": user.phone, "password": password})
+        token_serializer.is_valid(raise_exception=True)
+
+        response.update(ser.data)
+        response.update({"token": token_serializer.validated_data.get("token")})
         return Response(response, status=status.HTTP_200_OK)
 
 
@@ -177,11 +181,11 @@ def check_otp_view(request):
     if not ser.is_valid():
         return Response(ser.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    objects = Otp.objects.filter(phone=request.data['phone'])
+    objects = Otp.objects.filter(phone=ser.data.get('phone'))
     response = {}
 
     if len(objects) == 0:
-        response['error'] = 'phone not found.'
+        response['error'] = ['شماره موبایل یافت نشد.']
         return Response(response, status=status.HTTP_404_NOT_FOUND)
 
     obj = objects.last()
@@ -190,10 +194,10 @@ def check_otp_view(request):
         valid_time = utils.is_expired_otp(obj.created_at)
 
         if not valid_time:
-            response['error'] = 'otp code has been expired.'
+            response['otp_code'] = ['کد فعالسازی وارد شده منقضی شده است.']
             return Response(response, status=status.HTTP_406_NOT_ACCEPTABLE)
 
         return Response(status=status.HTTP_200_OK)
     else:
-        response['error'] = 'otp code is not correct.'
+        response['otp_code'] = ['کد فعالسازی وارد شده اشتباه است.']
         return Response(response, status=status.HTTP_400_BAD_REQUEST)
