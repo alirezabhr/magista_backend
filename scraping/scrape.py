@@ -72,7 +72,7 @@ class Scraper:
             return response.text
         elif response.status_code == 404:
             logger('page not found')
-            raise CustomException(404, "page not found")
+            raise CustomException(404, "پیج مورد نظر یافت نشد.")
         else:
             logger('something bad happened in get_data function')
             error_data = {
@@ -160,7 +160,7 @@ def write_file(file_name, data):
     file.close()
 
 
-def scrape_instagram_media(username):
+def scrape_and_save_instagram_media(username):
     scraper = Scraper(login_user='tmp_magista', login_pass='magista1400')
     scraper.authenticate_with_login()
     page_info_url = USER_URL.format(username)
@@ -171,7 +171,7 @@ def scrape_instagram_media(username):
         user_info = json.loads(data)['graphql']['user']
     except:
         logger('cant get user info')
-        return
+        raise CustomException(500, 'cant get user info')
 
     if user_info['is_private']:
         print('Private Page')
@@ -193,4 +193,23 @@ def scrape_instagram_media(username):
     file_name = f'{username}_media_query.json'
     json_media_data = json.dumps(user_posts_data, indent=4, ensure_ascii=False)
     write_file(file_name, json_media_data)
-    return json_media_data
+
+
+def get_page_preview_data(username):
+    file_name = f'{username}_media_query.json'
+
+    file = open(file_name, 'r', encoding='utf-8')
+
+    file_data = file.read()
+    file_data = json.loads(file_data)
+
+    return_data = []
+
+    for post_data in file_data:
+        tmp_dict = {
+            "id": post_data['id'],
+            "thumbnail_src": post_data['thumbnail_src']
+        }
+        return_data.append(tmp_dict)
+
+    return json.dumps(return_data)
