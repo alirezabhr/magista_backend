@@ -133,16 +133,17 @@ class ShopView(APIView):
 class UserMediaView(APIView):
     def get(self, request):
         try:
-            instagram_username = request.data['instagram_username']
+            instagram_username = request.query_params['instagram_username']
         except KeyError:
-            response = {'error': 'instagram username is required'}
+            response = {'error': ['آیدی پیج اینستاگرام الزامی است.']}
             return Response(response, status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            response_data = scrape.scrape_instagram_media(instagram_username)
+            scrape.scrape_and_save_instagram_media(instagram_username)
+            response_data = scrape.get_page_preview_data(instagram_username)
             return Response(response_data, status=status.HTTP_200_OK)
         except scrape.CustomException as ex:
-            response = {"error": ex.message}
+            response = {"error": [ex.message]}
             return Response(response, status=ex.status)
         except:
             return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
