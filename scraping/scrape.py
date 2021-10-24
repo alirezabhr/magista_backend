@@ -212,4 +212,4 @@ def get_page_preview_data(username):
         }
         return_data.append(tmp_dict)
 
-    return json.dumps(return_data)
+    return return_data
