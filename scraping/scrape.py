@@ -3,6 +3,9 @@ import json
 import hashlib
 import sys
 
+import os
+from django.conf import settings
+
 from .constants import *
 
 
@@ -154,13 +157,7 @@ class Scraper:
         return posts
 
 
-def write_file(file_name, data):
-    file = open(file_name, 'w', encoding='utf-8')
-    file.write(data)
-    file.close()
-
-
-def scrape_and_save_instagram_media(username):
+def scrape_instagram_media(username):
     scraper = Scraper(login_user='tmp_magista', login_pass='magista1400')
     scraper.authenticate_with_login()
     page_info_url = USER_URL.format(username)
@@ -189,18 +186,32 @@ def scrape_and_save_instagram_media(username):
         'category_name': user_info['category_name'],
     }
 
-    user_posts_data = scraper.get_media_data(profile_info)
+    return scraper.get_media_data(profile_info)
+
+
+def save_user_posts_data(username, user_posts_data):
     file_name = f'{username}_media_query.json'
+    file_dir = os.path.join(settings.MEDIA_ROOT, 'shop', username)
+    file_name_path = os.path.join(file_dir, file_name)
+    os.makedirs(file_dir, exist_ok=True)
+
     json_media_data = json.dumps(user_posts_data, indent=4, ensure_ascii=False)
-    write_file(file_name, json_media_data)
+
+    file = open(file_name_path, 'w', encoding='utf-8')
+    file.write(json_media_data)
+    file.close()
 
 
 def get_page_preview_data(username):
     file_name = f'{username}_media_query.json'
+    file_dir = os.path.join(settings.MEDIA_ROOT, 'shop', username)
+    file_name_path = os.path.join(file_dir, file_name)
 
-    file = open(file_name, 'r', encoding='utf-8')
+    file = open(file_name_path, 'r', encoding='utf-8')
 
     file_data = file.read()
+    file.close()
+
     file_data = json.loads(file_data)
 
     return_data = []

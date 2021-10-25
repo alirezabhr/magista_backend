@@ -1,5 +1,8 @@
+import json
+import os
 import random
 
+from django.conf import settings
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.views import APIView
@@ -139,7 +142,8 @@ class UserMediaView(APIView):
             return Response(response, status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            scrape.scrape_and_save_instagram_media(instagram_username)
+            data = scrape.scrape_instagram_media(instagram_username)
+            scrape.save_user_posts_data(instagram_username, data)
             response_data = scrape.get_page_preview_data(instagram_username)
             return Response(response_data, status=status.HTTP_200_OK)
         except scrape.CustomException as ex:
