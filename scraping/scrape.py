@@ -202,25 +202,53 @@ def save_user_posts_data(username, user_posts_data):
     file.close()
 
 
-def get_page_preview_data(username):
+def save_preview_images(username):
+    try:
+        post_preview_data = read_user_page_data(username)
+    except:
+        raise CustomException(500, "Can't get page preview data")
+
+    for post_data in post_preview_data:
+        file_dir = os.path.join(settings.MEDIA_ROOT, 'shop', username, post_data['id'])
+        os.makedirs(file_dir, exist_ok=True)
+        download_and_save_media(post_data['thumbnail_src'], file_dir, 'display_image.jpg')
+
+
+def read_user_page_data(username):
     file_name = f'{username}_media_query.json'
     file_dir = os.path.join(settings.MEDIA_ROOT, 'shop', username)
     file_name_path = os.path.join(file_dir, file_name)
 
     file = open(file_name_path, 'r', encoding='utf-8')
-
     file_data = file.read()
     file.close()
 
     file_data = json.loads(file_data)
+    return file_data
 
+
+def get_page_preview_data(username):
+    file_data = read_user_page_data(username)
     return_data = []
+    print(settings.MEDIA_URL)
 
+    index = 0
     for post_data in file_data:
+        display_img_full_path = f"media/shop/{username}/{post_data['id']}/display_image.jpg"
+
         tmp_dict = {
+            "index": index,
             "id": post_data['id'],
-            "thumbnail_src": post_data['thumbnail_src']
+            "thumbnail_src": "http://127.0.0.1:8000/" + display_img_full_path
         }
+
         return_data.append(tmp_dict)
+        index += 1
 
     return return_data
+
+
+def download_and_save_media(download_url, save_path, file_name):
+    response = requests.get(download_url)
+    save_full_path = os.path.join(save_path, file_name)
+    open(save_full_path, 'wb').write(response.content)
