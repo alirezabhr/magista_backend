@@ -128,7 +128,7 @@ JWT_AUTH = {
 # Internationalization
 # https://docs.djangoproject.com/en/3.2/topics/i18n/
 
-LANGUAGE_CODE = 'en-us'
+LANGUAGE_CODE = 'fa'    # 'en-us'
 
 TIME_ZONE = 'Asia/Tehran'
 
