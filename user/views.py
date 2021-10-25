@@ -131,24 +131,76 @@ class ShopView(APIView):
 
 
 class UserMediaView(APIView):
+    instagram_username = ""
+    extra_posts = []
+
+    def __remove_extra_posts_dirs(self):
+        """remove extra posts directory and directory contents in media root for an instagram online shop"""
+
+        for extra_post in self.extra_posts:
+            try:
+                utils.remove_shop_media_directory(self.instagram_username, extra_post.get('id'))
+            except OSError as e:
+                print(f"Error: {e.filename} - {e.strerror}.")
+
+    def __remove_extra_posts_media_query(self):
+        """remove extra posts data from media query json file of an instagram page"""
+
+        extra_posts_id_list = [post['id'] for post in self.extra_posts]
+        media_query_data = scrape.read_user_media_query_data(self.instagram_username)
+
+        index = 0
+        for post_data in media_query_data:
+            if post_data['id'] in extra_posts_id_list:
+                media_query_data.pop(index)
+            index += 1
+
+        scrape.write_user_media_query_data(self.instagram_username, media_query_data)
+
     def get(self, request):
+        response = {}
+
         try:
-            instagram_username = request.query_params['instagram_username']
+            self.instagram_username = request.query_params['instagram_username']
         except KeyError:
-            response = {'error': ['آیدی پیج اینستاگرام الزامی است.']}
+            response["error"] = ['آیدی پیج اینستاگرام الزامی است.']
             return Response(response, status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            data = scrape.scrape_instagram_media(instagram_username)
-            scrape.save_user_posts_data(instagram_username, data)
-            scrape.save_preview_images(instagram_username)
-            response_data = scrape.get_page_preview_data(instagram_username)
+            data = scrape.scrape_instagram_media(self.instagram_username)
+            scrape.write_user_media_query_data(self.instagram_username, data)
+            scrape.save_preview_images(self.instagram_username)
+            response_data = scrape.get_page_preview_data(self.instagram_username)
             return Response(response_data, status=status.HTTP_200_OK)
         except scrape.CustomException as ex:
-            response = {"error": [ex.message]}
+            response["error"] = [ex.message]
             return Response(response, status=ex.status)
-        except:
-            return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        except Exception as exc:
+            response["error"] = [str(exc)]
+            return Response(response, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    def post(self, request):
+        response = {}
+
+        try:
+            self.instagram_username = request.query_params['instagram_username']
+            self.extra_posts = request.data['extra_posts']
+            user_pk = request.data['user_id']
+        except KeyError:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            vendor = Shop.objects.get(instagram_username=self.instagram_username, vendor_id=user_pk)
+        except Shop.DoesNotExist:
+            response["error"] = ["shop not found"]
+            return Response(response, status=status.HTTP_404_NOT_FOUND)
+
+        self.__remove_extra_posts_dirs()
+        self.__remove_extra_posts_media_query()
+
+        # TODO create all products of this user with the rest of the posts
+
+        return Response(status=status.HTTP_200_OK)
 
 
 @api_view(['POST'])
