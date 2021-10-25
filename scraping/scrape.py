@@ -189,7 +189,7 @@ def scrape_instagram_media(username):
     return scraper.get_media_data(profile_info)
 
 
-def save_user_posts_data(username, user_posts_data):
+def write_user_media_query_data(username, user_posts_data):
     file_name = f'{username}_media_query.json'
     file_dir = os.path.join(settings.MEDIA_ROOT, 'shop', username)
     file_name_path = os.path.join(file_dir, file_name)
@@ -204,7 +204,7 @@ def save_user_posts_data(username, user_posts_data):
 
 def save_preview_images(username):
     try:
-        post_preview_data = read_user_page_data(username)
+        post_preview_data = read_user_media_query_data(username)
     except:
         raise CustomException(500, "Can't get page preview data")
 
@@ -214,7 +214,7 @@ def save_preview_images(username):
         download_and_save_media(post_data['thumbnail_src'], file_dir, 'display_image.jpg')
 
 
-def read_user_page_data(username):
+def read_user_media_query_data(username):
     file_name = f'{username}_media_query.json'
     file_dir = os.path.join(settings.MEDIA_ROOT, 'shop', username)
     file_name_path = os.path.join(file_dir, file_name)
@@ -228,7 +228,7 @@ def read_user_page_data(username):
 
 
 def get_page_preview_data(username):
-    file_data = read_user_page_data(username)
+    file_data = read_user_media_query_data(username)
     return_data = []
     print(settings.MEDIA_URL)
 
