@@ -213,18 +213,6 @@ def write_user_data(username, file_name, data):
     file.close()
 
 
-def save_preview_images(username):
-    try:
-        post_preview_data = read_user_media_query_data(username)
-    except:
-        raise CustomException(500, "Can't get page preview data")
-
-    for post_data in post_preview_data:
-        file_dir = os.path.join(settings.MEDIA_ROOT, 'shop', username, post_data['id'])
-        os.makedirs(file_dir, exist_ok=True)
-        download_and_save_media(post_data['thumbnail_src'], file_dir, 'display_image.jpg')
-
-
 def read_user_media_query_data(username):
     file_name = f'{username}_media_query.json'
     file_dir = os.path.join(settings.MEDIA_ROOT, 'shop', username)
@@ -236,6 +224,18 @@ def read_user_media_query_data(username):
 
     file_data = json.loads(file_data)
     return file_data
+
+
+def save_preview_images(username):
+    try:
+        post_preview_data = read_user_media_query_data(username)
+    except:
+        raise CustomException(500, "Can't get page preview data")
+
+    for post_data in post_preview_data:
+        file_dir = os.path.join(settings.MEDIA_ROOT, 'shop', username, post_data['id'])
+        os.makedirs(file_dir, exist_ok=True)
+        download_and_save_media(post_data['thumbnail_src'], file_dir, 'display_image.jpg')
 
 
 def get_page_preview_data(username):
