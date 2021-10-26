@@ -50,7 +50,7 @@ class Shop(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f'{self.id}: {self.vendor.username} | {self.instagram_id}'
+        return f'{self.id}: {self.vendor.username} | {self.instagram_username}'
 
 
 class Customer(models.Model):
