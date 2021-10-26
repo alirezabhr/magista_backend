@@ -116,13 +116,17 @@ class ShopView(APIView):
     serializer_class = ShopSerializer
     query_set = Shop.objects.all()
 
-    def post(self, request, *args, **kwargs):
+    def post(self, request, pk):
         response = {}
         request_data = request.data
 
         ser = self.serializer_class(data=request_data)
         if not ser.is_valid():
             return Response(ser.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        if ser.data.get('vendor') != pk:
+            response["error"] = ['pk is not valid']
+            return Response(response, status=status.HTTP_400_BAD_REQUEST)
 
         instagram_username = ser.data.get('instagram_username')
 
