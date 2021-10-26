@@ -215,6 +215,15 @@ def write_user_data(username, file_name, data):
 
 def read_user_media_query_data(username):
     file_name = f'{username}_media_query.json'
+    return read_user_data(username, file_name)
+
+
+def read_user_profile_info_data(username):
+    file_name = f'{username}_profile_info.json'
+    return read_user_data(username, file_name)
+
+
+def read_user_data(username, file_name):
     file_dir = os.path.join(settings.MEDIA_ROOT, 'shop', username)
     file_name_path = os.path.join(file_dir, file_name)
 
