@@ -247,6 +247,18 @@ def save_preview_images(username):
         download_and_save_media(post_data['thumbnail_src'], file_dir, 'display_image.jpg')
 
 
+def save_profile_image(username):
+    try:
+        user_info_data = read_user_profile_info_data(username)
+    except FileNotFoundError:
+        raise CustomException(400, 'اطلاعات اینستاگرام فروشگاه ثبت نشده است.')
+
+    profile_url = user_info_data['profile_pic_url']
+    file_dir = os.path.join(settings.MEDIA_ROOT, 'shop', username)
+    os.makedirs(file_dir, exist_ok=True)
+    download_and_save_media(profile_url, file_dir, 'profile_image.jpg')
+    
+
 def get_page_preview_data(username):
     file_data = read_user_media_query_data(username)
     return_data = []
