@@ -45,7 +45,7 @@ class Shop(models.Model):
     instagram_id = models.IntegerField(unique=True)
     province = models.CharField(max_length=30)
     city = models.CharField(max_length=30)
-    profile_pic = models.CharField(max_length=80)
+    profile_pic = models.CharField(max_length=80, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
