@@ -257,7 +257,12 @@ def save_profile_image(username):
     file_dir = os.path.join(settings.MEDIA_ROOT, 'shop', username)
     os.makedirs(file_dir, exist_ok=True)
     download_and_save_media(profile_url, file_dir, 'profile_image.jpg')
-    
+
+    user_info_data['profile_pic_url'] = f"media/shop/{username}/profile_image.jpg"
+    write_user_profile_info_data(username, user_info_data)
+
+    return user_info_data['profile_pic_url']
+
 
 def get_page_preview_data(username):
     file_data = read_user_media_query_data(username)
