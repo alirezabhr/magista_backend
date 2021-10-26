@@ -157,7 +157,10 @@ class UserMediaView(APIView):
 
         scrape.write_user_media_query_data(self.instagram_username, media_query_data)
 
-    def get(self, request):
+    def post(self, request):
+        """this method will scrape user instagram page, and get query_media data.
+            next it will save the query media in a json file and return status"""
+
         response = {}
 
         try:
@@ -169,6 +172,27 @@ class UserMediaView(APIView):
         try:
             data = scrape.scrape_instagram_media(self.instagram_username)
             scrape.write_user_media_query_data(self.instagram_username, data)
+            return Response(status=status.HTTP_200_OK)
+        except scrape.CustomException as ex:
+            response["error"] = [ex.message]
+            return Response(response, status=ex.status)
+        except Exception as exc:
+            response["error"] = [str(exc)]
+            return Response(response, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    def get(self, request):
+        """this method will download all preview images of user instagram page,
+            from media query json file. and save them in specific directory"""
+
+        response = {}
+
+        try:
+            self.instagram_username = request.query_params['instagram_username']
+        except KeyError:
+            response["error"] = ['آیدی پیج اینستاگرام الزامی است.']
+            return Response(response, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
             scrape.save_preview_images(self.instagram_username)
             response_data = scrape.get_page_preview_data(self.instagram_username)
             return Response(response_data, status=status.HTTP_200_OK)
@@ -179,7 +203,8 @@ class UserMediaView(APIView):
             response["error"] = [str(exc)]
             return Response(response, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-    def post(self, request):
+    def put(self, request):
+        """this method will remove extra post directories and extra post data from json file"""
         response = {}
 
         try:
