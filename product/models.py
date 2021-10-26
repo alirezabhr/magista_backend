@@ -7,7 +7,7 @@ from user.models import Shop, Customer
 class Product(models.Model):
     shop = models.ForeignKey(Shop, models.PROTECT)
     shortcode = models.CharField(max_length=15)
-    display_image = models.ImageField()
+    display_image = models.CharField(max_length=120, null=True)
     title = models.CharField(max_length=100, blank=True)
     description = models.TextField()
     instagram_link = models.CharField(max_length=70, blank=True)
