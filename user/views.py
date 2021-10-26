@@ -172,7 +172,8 @@ class UserMediaView(APIView):
         try:
             data = scrape.scrape_instagram_media(self.instagram_username)
             scrape.write_user_media_query_data(self.instagram_username, data)
-            return Response(status=status.HTTP_200_OK)
+            response = scrape.read_user_profile_info_data(self.instagram_username)
+            return Response(response, status=status.HTTP_200_OK)
         except scrape.CustomException as ex:
             response["error"] = [ex.message]
             return Response(response, status=ex.status)
