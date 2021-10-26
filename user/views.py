@@ -233,15 +233,13 @@ class UserMediaView(APIView):
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            vendor = Shop.objects.get(instagram_username=self.instagram_username, vendor_id=user_pk)
+            Shop.objects.get(instagram_username=self.instagram_username, vendor_id=user_pk)
         except Shop.DoesNotExist:
             response["error"] = ["shop not found"]
             return Response(response, status=status.HTTP_404_NOT_FOUND)
 
         self.__remove_extra_posts_dirs()
         self.__remove_extra_posts_media_query()
-
-        # TODO create all products of this user with the rest of the posts
 
         return Response(status=status.HTTP_200_OK)
 
