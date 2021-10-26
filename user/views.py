@@ -117,12 +117,31 @@ class ShopView(APIView):
     query_set = Shop.objects.all()
 
     def post(self, request, pk):
-        ser = self.serializer_class(data=request.data)
-        if ser.is_valid():
-            ser.save()
-            return Response(ser.data, status=status.HTTP_201_CREATED)
-        else:
+        response = {}
+        request_data = request.data
+
+        ser = self.serializer_class(data=request_data)
+        if not ser.is_valid():
             return Response(ser.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        instagram_username = ser.data.get('instagram_username')
+
+        try:
+            profile_pic_url = scrape.save_profile_image(instagram_username)
+        except scrape.CustomException as ex:
+            response["error"] = [ex.message]
+            return Response(response, status=ex.status)
+        except Exception as exc:
+            response["error"] = [str(exc)]
+            return Response(response, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        request_data['profile_pic'] = profile_pic_url
+
+        ser = self.serializer_class(data=request_data)
+        ser.is_valid(raise_exception=True)
+        ser.save()
+        return Response(ser.data, status=status.HTTP_201_CREATED)
+
 
     def get(self, request, pk):
         shops = self.query_set.filter(vendor_id=pk)
@@ -160,7 +179,6 @@ class UserMediaView(APIView):
     def post(self, request):
         """this method will scrape user instagram page, and get query_media data.
             next it will save the query media in a json file and return status"""
-
         response = {}
 
         try:
@@ -184,7 +202,6 @@ class UserMediaView(APIView):
     def get(self, request):
         """this method will download all preview images of user instagram page,
             from media query json file. and save them in specific directory"""
-
         response = {}
 
         try:
