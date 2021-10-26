@@ -116,7 +116,7 @@ class ShopView(APIView):
     serializer_class = ShopSerializer
     query_set = Shop.objects.all()
 
-    def post(self, request, pk):
+    def post(self, request, *args, **kwargs):
         response = {}
         request_data = request.data
 
@@ -141,7 +141,6 @@ class ShopView(APIView):
         ser.is_valid(raise_exception=True)
         ser.save()
         return Response(ser.data, status=status.HTTP_201_CREATED)
-
 
     def get(self, request, pk):
         shops = self.query_set.filter(vendor_id=pk)
