@@ -186,16 +186,27 @@ def scrape_instagram_media(username):
         'category_name': user_info['category_name'],
     }
 
+    write_user_profile_info_data(username, profile_info)
+
     return scraper.get_media_data(profile_info)
+
+
+def write_user_profile_info_data(username, profile_info_data):
+    file_name = f'{username}_profile_info.json'
+    write_user_data(username, file_name, profile_info_data)
 
 
 def write_user_media_query_data(username, user_posts_data):
     file_name = f'{username}_media_query.json'
+    write_user_data(username, file_name, user_posts_data)
+
+
+def write_user_data(username, file_name, data):
     file_dir = os.path.join(settings.MEDIA_ROOT, 'shop', username)
     file_name_path = os.path.join(file_dir, file_name)
     os.makedirs(file_dir, exist_ok=True)
 
-    json_media_data = json.dumps(user_posts_data, indent=4, ensure_ascii=False)
+    json_media_data = json.dumps(data, indent=4, ensure_ascii=False)
 
     file = open(file_name_path, 'w', encoding='utf-8')
     file.write(json_media_data)
