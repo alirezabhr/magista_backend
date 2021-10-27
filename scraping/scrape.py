@@ -267,7 +267,6 @@ def save_profile_image(username):
 def get_page_preview_data(username):
     file_data = read_user_media_query_data(username)
     return_data = []
-    print(settings.MEDIA_URL)
 
     index = 0
     for post_data in file_data:
@@ -276,7 +275,7 @@ def get_page_preview_data(username):
         tmp_dict = {
             "index": index,
             "id": post_data['id'],
-            "thumbnail_src": "http://127.0.0.1:8000/" + display_img_full_path
+            "thumbnail_src": display_img_full_path
         }
 
         return_data.append(tmp_dict)
