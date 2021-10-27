@@ -235,16 +235,34 @@ def read_user_data(username, file_name):
     return file_data
 
 
-def save_preview_images(username):
+def save_preview_images(username, page):
+    pagination_size = settings.SCRAPER_PAGINATION_SIZE
+
     try:
         post_preview_data = read_user_media_query_data(username)
-    except:
+        posts_count = len(post_preview_data)
+    except Exception:
         raise CustomException(500, "Can't get page preview data")
 
-    for post_data in post_preview_data:
+    if page is None:
+        pagination_size = posts_count
+        page = 1
+    else:
+        if page < 1 or page > (posts_count // pagination_size) + 1:
+            raise CustomException(400, "Paginator value is not valid!")
+
+    start_post = (page - 1) * pagination_size
+    if page * pagination_size > posts_count:
+        end_post = posts_count
+    else:
+        end_post = page * pagination_size
+
+    while start_post < end_post:
+        post_data = post_preview_data[start_post]
         file_dir = os.path.join(settings.MEDIA_ROOT, 'shop', username, post_data['id'])
         os.makedirs(file_dir, exist_ok=True)
         download_and_save_media(post_data['thumbnail_src'], file_dir, 'display_image.jpg')
+        start_post += 1
 
 
 def save_profile_image(username):
@@ -264,24 +282,44 @@ def save_profile_image(username):
     return user_info_data['profile_pic_url']
 
 
-def get_page_preview_data(username):
+def get_page_preview_data(username, page):
+    pagination_size = settings.SCRAPER_PAGINATION_SIZE
     file_data = read_user_media_query_data(username)
-    return_data = []
+    posts_count = len(file_data)
+    posts_return_data = []
 
-    index = 0
-    for post_data in file_data:
+    if page is None:
+        pagination_size = posts_count
+        page = 1
+    else:
+        if page < 1 or page > (posts_count // pagination_size) + 1:
+            raise CustomException(400, "Paginator value is not valid!")
+
+    start_post = (page - 1) * pagination_size
+    if page * pagination_size > posts_count:
+        end_post = posts_count
+        has_next = False
+    else:
+        end_post = page * pagination_size
+        has_next = True
+
+    while start_post < end_post:
+        post_data = file_data[start_post]
         display_img_full_path = f"media/shop/{username}/{post_data['id']}/display_image.jpg"
-
         tmp_dict = {
-            "index": index,
+            "index": start_post,
             "id": post_data['id'],
             "thumbnail_src": display_img_full_path
         }
+        posts_return_data.append(tmp_dict)
+        start_post += 1
 
-        return_data.append(tmp_dict)
-        index += 1
+    return_value = {
+        "has_next": has_next,
+        "posts_data": posts_return_data
+    }
 
-    return return_data
+    return return_value
 
 
 def download_and_save_media(download_url, save_path, file_name):

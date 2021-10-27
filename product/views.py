@@ -39,7 +39,7 @@ class ShopProductsView(APIView):
         product_data = {}
         for post_data in media_query:
             product_data["shop"] = shop.pk
-            product_data["short_code"] = post_data['shortcode']
+            product_data["shortcode"] = post_data['shortcode']
             product_data["display_image"] = f"media/shop/{instagram_username}/{post_data['id']}/display_image.jpg"
             product_data["title"] = f"آنلاین شاپ {instagram_username}، محصول {index}"
             product_data["description"] = post_data['edge_media_to_caption']['edges'][0]['node']['text']
