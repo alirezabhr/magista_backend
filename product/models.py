@@ -6,12 +6,12 @@ from user.models import Shop, Customer
 # Create your models here.
 class Product(models.Model):
     shop = models.ForeignKey(Shop, models.PROTECT)
-    shortcode = models.CharField(max_length=15)
+    shortcode = models.CharField(max_length=15)     # this shortcode can create by backend
     display_image = models.CharField(max_length=120, null=True)
     title = models.CharField(max_length=100, blank=True)
     description = models.TextField()
-    instagram_link = models.CharField(max_length=70, blank=True)
-    rate = models.PositiveSmallIntegerField()
+    instagram_link = models.CharField(max_length=70, blank=True)    # instagram shortcode
+    rate = models.PositiveSmallIntegerField(null=True)
     is_existing = models.BooleanField(default=True)
     updated_at = models.DateTimeField(auto_now=True)
     created_at = models.DateTimeField(auto_now_add=True)
