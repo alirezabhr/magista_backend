@@ -1,6 +1,7 @@
 import random
 
 from rest_framework.decorators import api_view, permission_classes
+from rest_framework.generics import ListAPIView
 from rest_framework.permissions import AllowAny
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -213,9 +214,13 @@ class UserMediaView(APIView):
             response["error"] = ['آیدی پیج اینستاگرام الزامی است.']
             return Response(response, status=status.HTTP_400_BAD_REQUEST)
 
+        page = request.query_params.get('page')
+        if page is not None:
+            page = int(page)
+
         try:
-            scrape.save_preview_images(self.instagram_username)
-            response_data = scrape.get_page_preview_data(self.instagram_username)
+            scrape.save_preview_images(self.instagram_username, page)
+            response_data = scrape.get_page_preview_data(self.instagram_username, page)
             return Response(response_data, status=status.HTTP_200_OK)
         except scrape.CustomException as ex:
             response["error"] = [ex.message]
