@@ -16,11 +16,17 @@ class Product(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
+    def __str__(self):
+        return f"{self.pk}: {self.shop} - {self.title}"
+
 
 class ProductPrice(models.Model):
     product = models.ForeignKey(Product, models.PROTECT)
     price = models.IntegerField()
     set_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.pk}: ({self.price}) {self.product.shop} - {self.product.title}"
 
 
 class ProductAttribute(models.Model):
