@@ -1,9 +1,24 @@
 from django.db import models
 
-from user.models import Shop, Customer
+from user.models import User, Customer
 
 
 # Create your models here.
+class Shop(models.Model):
+    vendor = models.ForeignKey(User, on_delete=models.CASCADE)
+    email = models.EmailField()
+    instagram_username = models.CharField(max_length=30, unique=True)
+    instagram_id = models.IntegerField(unique=True)
+    province = models.CharField(max_length=30)
+    city = models.CharField(max_length=30)
+    address = models.TextField()
+    profile_pic = models.CharField(max_length=80, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f'{self.id}: {self.vendor.username} | {self.instagram_username}'
+
+
 class Product(models.Model):
     shop = models.ForeignKey(Shop, models.PROTECT)
     shortcode = models.CharField(max_length=15)     # this shortcode can create by backend
