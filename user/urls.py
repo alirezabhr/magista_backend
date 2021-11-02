@@ -9,5 +9,4 @@ urlpatterns = [
     path('signup/', views.UserSignupView.as_view(), name='signup'),
     path('login/', views.UserLoginView.as_view(), name='login'),
     path('customer/', views.CustomerView.as_view(), name='create-customer'),
-    path('user-media/', views.UserMediaView.as_view(), name='get-user-ig-media'),
 ]
