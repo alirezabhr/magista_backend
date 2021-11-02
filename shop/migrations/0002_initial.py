@@ -9,25 +9,25 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ('product', '0001_initial'),
+        ('shop', '0001_initial'),
         ('user', '0001_initial'),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='product',
+            model_name='shop',
             name='shop',
             field=models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, to='user.shop'),
         ),
         migrations.AddField(
             model_name='orderitem',
             name='order',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, to='product.order'),
+            field=models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, to='shop.order'),
         ),
         migrations.AddField(
             model_name='orderitem',
             name='product_price',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, to='product.productprice'),
+            field=models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, to='shop.productprice'),
         ),
         migrations.AddField(
             model_name='order',
@@ -36,7 +36,7 @@ class Migration(migrations.Migration):
         ),
         migrations.AddField(
             model_name='discount',
-            name='product',
-            field=models.ForeignKey(null=True, on_delete=django.db.models.deletion.PROTECT, to='product.product'),
+            name='shop',
+            field=models.ForeignKey(null=True, on_delete=django.db.models.deletion.PROTECT, to='shop.shop'),
         ),
     ]

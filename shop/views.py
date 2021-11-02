@@ -2,10 +2,11 @@ from django.shortcuts import get_object_or_404
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
+from rest_framework.permissions import AllowAny
 
 from user.models import Shop
-from .models import Product
-from .serializers import ProductSerializer
+from .models import Product, ProductPrice
+from .serializers import ProductSerializer, ShopProductsPriceSerializer
 
 from scraping import scrape
 
@@ -52,6 +53,26 @@ class ShopProductsView(APIView):
             index += 1
 
         return Response(status=status.HTTP_200_OK)
+
+
+class ShopProductsPreviewView(APIView):
+    serializer_class = ShopProductsPriceSerializer
+    permission_classes = [AllowAny]
+    queryset = ProductPrice.objects
+
+    def get(self, request, *args, **kwargs):
+        products_list = Product.objects.filter(shop__instagram_username=kwargs['ig_username'])
+
+        products_price_list = []
+        for product in products_list:
+            try:
+                product_price = self.queryset.filter(product=product.pk).latest('id')
+                products_price_list.append(product_price)
+            except ProductPrice.DoesNotExist:
+                continue
+
+        ser = self.serializer_class(products_price_list, many=True)
+        return Response(ser.data, status=status.HTTP_200_OK)
 
 
 class ProductDetailView(APIView):

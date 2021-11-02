@@ -6,12 +6,12 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('product', '0003_alter_product_display_image'),
+        ('shop', '0003_alter_product_display_image'),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='product',
+            model_name='shop',
             name='rate',
             field=models.PositiveSmallIntegerField(null=True),
         ),

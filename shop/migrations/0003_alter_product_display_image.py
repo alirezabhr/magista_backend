@@ -6,12 +6,12 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('product', '0002_initial'),
+        ('shop', '0002_initial'),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='product',
+            model_name='shop',
             name='display_image',
             field=models.CharField(max_length=120, null=True),
         ),
