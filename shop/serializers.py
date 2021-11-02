@@ -1,6 +1,25 @@
 from rest_framework import serializers
 
-from .models import Product, ProductPrice
+from .models import Shop, Product, ProductPrice
+
+
+class ShopSerializer(serializers.ModelSerializer):
+    created_at = serializers.DateTimeField(format="%Y-%m-%d %H:%M:%S", read_only=True)
+
+    class Meta:
+        model = Shop
+        fields = '__all__'
+
+
+class ShopPreviewSerializer(serializers.ModelSerializer):
+    class Meta:
+        fields = [
+            'instagram_username',
+            'province',
+            'city',
+            'profile_pic'
+        ]
+        model = Shop
 
 
 class ProductSerializer(serializers.ModelSerializer):
