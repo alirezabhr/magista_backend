@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from .models import User, Shop, Customer, Otp
+from .models import User, Customer, Otp
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -20,14 +20,6 @@ class UserSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         return User.objects.create_user(**validated_data)
-
-
-class ShopSerializer(serializers.ModelSerializer):
-    created_at = serializers.DateTimeField(format="%Y-%m-%d %H:%M:%S", read_only=True)
-
-    class Meta:
-        model = Shop
-        fields = '__all__'
 
 
 class CustomerSerializer(serializers.ModelSerializer):
