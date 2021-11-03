@@ -4,8 +4,8 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import AllowAny
 
-from .models import Shop, Product, ProductPrice
-from .serializers import ShopSerializer, ProductSerializer, ShopProductsPriceSerializer, ShopPreviewSerializer
+from .models import Shop, Product
+from .serializers import ShopSerializer, ProductSerializer, ShopPreviewSerializer, ShopProductsPreviewSerializer
 
 from scraping import scrape
 from utils import utils
@@ -154,7 +154,7 @@ class ShopView(APIView):
 class ShopProductsView(APIView):
     serializer_class = ProductSerializer
 
-    def post(self, request, pk):
+    def post(self, request, pk):    # pk is shop id
         """create all products with query_media json file"""
         response = {}
 
@@ -197,22 +197,13 @@ class ShopProductsView(APIView):
 
 
 class ShopProductsPreviewView(APIView):
-    serializer_class = ShopProductsPriceSerializer
+    serializer_class = ShopProductsPreviewSerializer
     permission_classes = [AllowAny]
-    queryset = ProductPrice.objects
+    queryset = Product.objects
 
     def get(self, request, *args, **kwargs):
-        products_list = Product.objects.filter(shop__instagram_username=kwargs['ig_username'])
-
-        products_price_list = []
-        for product in products_list:
-            try:
-                product_price = self.queryset.filter(product=product.pk).latest('id')
-                products_price_list.append(product_price)
-            except ProductPrice.DoesNotExist:
-                continue
-
-        ser = self.serializer_class(products_price_list, many=True)
+        products_list = Product.objects.filter(shop__instagram_username=kwargs['ig_username'], price__isnull=False)
+        ser = self.serializer_class(products_list, many=True)
         return Response(ser.data, status=status.HTTP_200_OK)
 
 
