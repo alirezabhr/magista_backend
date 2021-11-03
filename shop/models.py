@@ -27,21 +27,25 @@ class Product(models.Model):
     description = models.TextField()
     instagram_link = models.CharField(max_length=70, blank=True)    # instagram shortcode
     rate = models.PositiveSmallIntegerField(null=True)
+    original_price = models.PositiveIntegerField(null=True, default=None)
     is_existing = models.BooleanField(default=True)
     updated_at = models.DateTimeField(auto_now=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
+    @property
+    def discount_percent(self):
+        return Discount.objects.filter(product=self, is_active=True).last().percent
+
+    @property
+    def discount_amount(self):
+        return Discount.objects.filter(product=self, is_active=True).last().amount
+
+    @property
+    def final_price(self):
+        return self.original_price - self.discount_amount
+
     def __str__(self):
         return f"{self.pk}: {self.shop} - {self.title}"
-
-
-class ProductPrice(models.Model):
-    product = models.ForeignKey(Product, models.PROTECT)
-    price = models.IntegerField()
-    set_at = models.DateTimeField(auto_now_add=True)
-
-    def __str__(self):
-        return f"{self.pk}: ({self.price}) {self.product.shop} - {self.product.title}"
 
 
 class ProductAttribute(models.Model):
@@ -53,15 +57,17 @@ class ProductAttribute(models.Model):
 class Discount(models.Model):
     product = models.ForeignKey(Product, models.PROTECT, null=True)
     percent = models.PositiveSmallIntegerField()
+    amount = models.PositiveIntegerField()
     description = models.CharField(max_length=300, blank=True)
     is_active = models.BooleanField(default=True)
-    start_at = models.DateTimeField()
-    end_at = models.DateTimeField(null=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    disabled_at = models.DateTimeField(null=True)
+    # start_at = models.DateTimeField()
+    # end_at = models.DateTimeField(null=True)
+    # created_at = models.DateTimeField(auto_now_add=True)
+    # disabled_at = models.DateTimeField(null=True)
 
 
-class Order(models.Model):
+class Invoice(models.Model):
+    shop = models.ForeignKey(Shop, models.PROTECT)
     customer = models.ForeignKey(Customer, models.PROTECT)
     status = models.SmallIntegerField()
     updated_at = models.DateTimeField(auto_now=True)
@@ -69,6 +75,7 @@ class Order(models.Model):
 
 
 class OrderItem(models.Model):
-    order = models.ForeignKey(Order, models.PROTECT)
-    product_price = models.ForeignKey(ProductPrice, models.PROTECT)
+    invoice = models.ForeignKey(Invoice, models.PROTECT)
+    product = models.ForeignKey(Product, models.PROTECT)
+    price = models.PositiveIntegerField()
     quantity = models.PositiveSmallIntegerField()
