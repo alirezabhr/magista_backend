@@ -202,7 +202,8 @@ class ShopProductsPreviewView(APIView):
     queryset = Product.objects
 
     def get(self, request, *args, **kwargs):
-        products_list = Product.objects.filter(shop__instagram_username=kwargs['ig_username'], price__isnull=False)
+        products_list = Product.objects.filter(shop__instagram_username=kwargs['ig_username'],
+                                               original_price__isnull=False)
         ser = self.serializer_class(products_list, many=True)
         return Response(ser.data, status=status.HTTP_200_OK)
 
