@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from .models import Shop, Product, ProductPrice
+from .models import Shop, Product
 
 
 class ShopSerializer(serializers.ModelSerializer):
@@ -40,17 +40,8 @@ class ShopProductsPreviewSerializer(serializers.ModelSerializer):
             'description',
             'display_image',
             'rate',
+            'price',
+            'discount_percent',
+            'final_price',
             'is_existing',
         ]
-
-
-class ShopProductsPriceSerializer(serializers.ModelSerializer):
-    product = ShopProductsPreviewSerializer()
-
-    class Meta:
-        model = ProductPrice
-        fields = [
-            'price',
-            'shop',
-        ]
-        depth = 1
