@@ -1,3 +1,4 @@
+from rest_framework.generics import get_object_or_404
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
@@ -153,12 +154,14 @@ class ShopView(APIView):
 class ShopProductsView(APIView):
     serializer_class = ProductSerializer
 
-    def post(self, request):
+    def post(self, request, pk):
         """create all products with query_media json file"""
         response = {}
 
+        shop = get_object_or_404(Shop, pk=pk)
+
         try:
-            shop_id = request.data['shop']
+            shop_id = shop.pk
             instagram_username = request.data['instagram_username']
             shop = Shop.objects.get(pk=shop_id, instagram_username=instagram_username)
         except KeyError:
