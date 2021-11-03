@@ -40,7 +40,7 @@ class ShopProductsPreviewSerializer(serializers.ModelSerializer):
             'description',
             'display_image',
             'rate',
-            'price',
+            'original_price',
             'discount_percent',
             'final_price',
             'is_existing',
