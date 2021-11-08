@@ -34,11 +34,17 @@ class Product(models.Model):
 
     @property
     def discount_percent(self):
-        return Discount.objects.filter(product=self, is_active=True).last().percent
+        discount = Discount.objects.filter(product=self, is_active=True).last()
+        if discount is None:
+            return 0
+        return discount.percent
 
     @property
     def discount_amount(self):
-        return Discount.objects.filter(product=self, is_active=True).last().amount
+        discount = Discount.objects.filter(product=self, is_active=True).last()
+        if discount is None:
+            return 0
+        return discount.amount
 
     @property
     def final_price(self):
@@ -80,9 +86,15 @@ class Invoice(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
+    def __str__(self):
+        return f"id: {self.pk} | {self.created_at} | status: {self.status}"
+
 
 class OrderItem(models.Model):
     invoice = models.ForeignKey(Invoice, models.PROTECT)
     product = models.ForeignKey(Product, models.PROTECT)
     price = models.PositiveIntegerField()
-    quantity = models.PositiveSmallIntegerField()
+    count = models.PositiveSmallIntegerField()
+
+    def __str__(self):
+        return f"id: {self.pk} | invoice: {self.invoice.pk}"
