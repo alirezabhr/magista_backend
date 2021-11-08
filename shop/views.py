@@ -4,9 +4,9 @@ from rest_framework.response import Response
 from rest_framework import status, permissions
 from rest_framework.permissions import AllowAny
 
-from .models import Shop, Product
+from .models import Shop, Product, Invoice
 from .serializers import ShopSerializer, ProductSerializer, ShopPreviewSerializer, ShopProductsPreviewSerializer, \
-    InvoiceSerializer
+    OrderItemSerializer, CartSerializer, InvoiceSerializer
 
 from scraping import scrape
 from utils import utils
@@ -266,11 +266,40 @@ class ShopPreviewView(APIView):
         return Response(ser.data, status=status.HTTP_200_OK)
 
 
-class InvoiceView(APIView):
-    serializer_class = InvoiceSerializer
+class CartView(APIView):
+    serializer_class = CartSerializer
 
     def post(self, request):
-        ser = self.serializer_class(data=request.data)
-        ser.is_valid(raise_exception=True)
-        # ser.save()
-        return Response(ser.data, status=status.HTTP_200_OK)
+        data = request.data
+        cart_ser = self.serializer_class(data=data)
+        cart_ser.is_valid(raise_exception=True)
+
+        for shop_order in data['cart']:
+            invoice_data = {
+                'shop': shop_order['shop_id'],
+                'customer': data['customer_id'],
+                'status': Invoice.Status.AWAITING_PAYMENT,
+            }
+
+            invoice_serializer = InvoiceSerializer(data=invoice_data)
+            invoice_serializer.is_valid(raise_exception=True)
+            invoice = invoice_serializer.save()
+
+            for order in shop_order['orders']:
+                try:
+                    product = Product.objects.get(pk=order['product']['id'])
+                except Product.DoesNotExist:
+                    return Response({'error': 'product does not exist'}, status=status.HTTP_400_BAD_REQUEST)
+                price = product.final_price
+                order_item_data = {
+                    'invoice': invoice.pk,
+                    'product': order['product']['id'],
+                    'count': order['count'],
+                    'price': price
+                }
+
+                order_item_serializer = OrderItemSerializer(data=order_item_data)
+                order_item_serializer.is_valid(raise_exception=True)
+                order_item_serializer.save()
+
+        return Response(status=status.HTTP_200_OK)
