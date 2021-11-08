@@ -1,14 +1,34 @@
 from rest_framework.generics import get_object_or_404
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework import status
+from rest_framework import status, permissions
 from rest_framework.permissions import AllowAny
 
 from .models import Shop, Product
-from .serializers import ShopSerializer, ProductSerializer, ShopPreviewSerializer, ShopProductsPreviewSerializer
+from .serializers import ShopSerializer, ProductSerializer, ShopPreviewSerializer, ShopProductsPreviewSerializer, \
+    InvoiceSerializer
 
 from scraping import scrape
 from utils import utils
+
+
+class IsShopOwnerOrReadOnly(permissions.BasePermission):
+    message = 'تغییر در فروشگاه مجاز نیست.'
+
+    def has_object_permission(self, request, view, obj):
+        print('in has_object_permission')
+        if request.method in permissions.SAFE_METHODS:
+            return True
+        print(request.user)
+        print(obj)
+        return obj.vendor == request.user
+
+    # def has_permission(self, request, view):
+    #     print('in has_permission')
+    #     print(request.user)
+    #     if request.method in permissions.SAFE_METHODS:
+    #         return True
+    #     return False
 
 
 # Create your views here.
@@ -152,6 +172,7 @@ class ShopView(APIView):
 
 
 class ShopProductsView(APIView):
+    permission_classes = [IsShopOwnerOrReadOnly]
     serializer_class = ProductSerializer
 
     def post(self, request, pk):    # pk is shop id
@@ -198,7 +219,8 @@ class ShopProductsView(APIView):
 
 class ShopProductsPreviewView(APIView):
     serializer_class = ShopProductsPreviewSerializer
-    permission_classes = [AllowAny]
+    # permission_classes = [AllowAny]
+    permission_classes = [IsShopOwnerOrReadOnly]
     queryset = Product.objects
 
     def get(self, request, *args, **kwargs):
@@ -206,6 +228,28 @@ class ShopProductsPreviewView(APIView):
                                                original_price__isnull=False)
         ser = self.serializer_class(products_list, many=True)
         return Response(ser.data, status=status.HTTP_200_OK)
+
+    def post(self, request, *args, **kwargs):
+        products_list = Product.objects.filter(shop__instagram_username=kwargs['ig_username'],
+                                               original_price__isnull=False)
+        if len(products_list):
+            product = products_list[0]
+        else:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+
+        product_data = {
+            "shortcode": product.shortcode,
+            "display_image": product.display_image,
+            "title": 'جدید',
+            "description": product.description,
+            "instagram_link": product.instagram_link
+        }
+
+        serializer = self.serializer_class(product, data=product_data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+
+        return Response(status=status.HTTP_200_OK)
 
 
 class ShopPreviewView(APIView):
@@ -219,4 +263,14 @@ class ShopPreviewView(APIView):
         except Shop.DoesNotExist:
             return Response(status=status.HTTP_404_NOT_FOUND)
         ser = self.serializer_class(shop)
+        return Response(ser.data, status=status.HTTP_200_OK)
+
+
+class InvoiceView(APIView):
+    serializer_class = InvoiceSerializer
+
+    def post(self, request):
+        ser = self.serializer_class(data=request.data)
+        ser.is_valid(raise_exception=True)
+        # ser.save()
         return Response(ser.data, status=status.HTTP_200_OK)
