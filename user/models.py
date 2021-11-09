@@ -36,7 +36,7 @@ class User(AbstractUser):
 
     @property
     def customer_id(self):
-        return Customer.objects.get(user=self)
+        return Customer.objects.get(user=self).pk
 
     def __str__(self):
         return f'{self.id}: {self.username}'
