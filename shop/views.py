@@ -268,11 +268,14 @@ class ShopPreviewView(APIView):
 
 class CartView(APIView):
     serializer_class = CartSerializer
+    invoice_serializer_class = InvoiceSerializer
 
-    def post(self, request):
+    def post(self, request):     # create invoices (just for customer)
         data = request.data
         cart_ser = self.serializer_class(data=data)
         cart_ser.is_valid(raise_exception=True)
+
+        invoice_list = []
 
         for shop_order in data['cart']:
             invoice_data = {
@@ -302,4 +305,29 @@ class CartView(APIView):
                 order_item_serializer.is_valid(raise_exception=True)
                 order_item_serializer.save()
 
-        return Response(status=status.HTTP_200_OK)
+            invoice_list.append(invoice)
+
+        ser = InvoiceSerializer(invoice_list, many=True)
+        return Response(ser.data, status=status.HTTP_200_OK)
+
+    def put(self, request):     # pay invoices (just for customer)
+        user = request.user
+
+        data = request.data
+        ser = self.invoice_serializer_class(data=data, many=True)
+        ser.is_valid(raise_exception=True)
+
+        invoice_list = []
+        for invoice_data in data:
+            try:
+                invoice = Invoice.objects.get(pk=invoice_data['id'])
+                if invoice.customer.user != user:
+                    return Response(status=status.HTTP_403_FORBIDDEN)
+                invoice.status = Invoice.Status.PAID
+                invoice.save()
+                invoice_list.append(invoice)
+            except Invoice.DoesNotExist:
+                return Response(status=status.HTTP_400_BAD_REQUEST)
+
+        ser = self.invoice_serializer_class(invoice_list, many=True)
+        return Response(ser.data, status=status.HTTP_200_OK)

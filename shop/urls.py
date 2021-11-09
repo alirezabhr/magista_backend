@@ -8,5 +8,5 @@ urlpatterns = [
     path('<int:pk>/products/', views.ShopProductsView.as_view()),    # for vendor
     path('<str:ig_username>/products/', views.ShopProductsPreviewView.as_view()),    # for customer
     path('<str:ig_username>/preview/', views.ShopPreviewView.as_view(), name='shop-preview'),    # for customer
-    path('cart/', views.CartView.as_view(), name='cart')
+    path('cart/', views.CartView.as_view(), name='cart'),
 ]
