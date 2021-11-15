@@ -26,6 +26,7 @@ SECRET_KEY = 'django-insecure-4xaah-z$9v_qyr6&_-st#vjjbdyvh@0m%8d-x(ew-9+4)9n0@=
 DEBUG = True
 
 ALLOWED_HOSTS = ['*']
+# ALLOWED_HOSTS = ['.magista.ir', '194.5.205.48']
 
 # Application definition
 
@@ -94,6 +95,17 @@ DATABASES = {
         'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
+
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.postgresql_psycopg2',
+#         'NAME': 'magista',
+#         'USER': 'magista_user',
+#         'PASSWORD': 'M@g!St@_1400',
+#         'HOST': 'localhost',
+#         'PORT': '',
+#     }
+# }
 
 # Password validation
 # https://docs.djangoproject.com/en/3.2/ref/settings/#auth-password-validators
