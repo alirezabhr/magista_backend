@@ -1,5 +1,5 @@
 """
-WSGI config for jupiter project.
+WSGI config for magista project.
 
 It exposes the WSGI callable as a module-level variable named ``application``.
 
@@ -11,6 +11,6 @@ import os
 
 from django.core.wsgi import get_wsgi_application
 
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'jupiter.settings')
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'magista.settings')
 
 application = get_wsgi_application()
