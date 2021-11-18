@@ -124,12 +124,12 @@ def send_otp_view(request):
 
     otp_code = random.randint(10000, 99999)
 
-    # try:
-    #     SMSService().send_otp(phone=phone, otp=otp_code)
-    # except Exception as e:
-    #     print(e)
-    #     response['error'] = "problem in sending otp sms"
-    #     return Response(response, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    try:
+        SMSService().send_otp(phone=phone, otp=otp_code)
+    except Exception as e:
+        print(e)
+        response['error'] = "problem in sending otp sms"
+        return Response(response, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     data = {
         "phone": phone,
