@@ -343,3 +343,13 @@ class CartView(APIView):
 
         ser = self.invoice_serializer_class(invoice_list, many=True)
         return Response(ser.data, status=status.HTTP_200_OK)
+
+
+class ProductView(APIView):
+    serializer_class = ProductSerializer
+    permission_classes = [IsShopOwnerOrReadOnly]
+
+    def get(self, request, product_shortcode):
+        product = get_object_or_404(Product, shortcode=product_shortcode)
+        ser = self.serializer_class(product)
+        return Response(ser.data, status=status.HTTP_200_OK)
