@@ -24,7 +24,7 @@ class Product(models.Model):
     shortcode = models.CharField(max_length=15)     # this shortcode can create by backend
     display_image = models.CharField(max_length=120, null=True)
     title = models.CharField(max_length=100, blank=True)
-    description = models.TextField()
+    description = models.TextField(blank=True)
     instagram_link = models.CharField(max_length=70, blank=True)    # instagram shortcode
     rate = models.PositiveSmallIntegerField(null=True)
     original_price = models.PositiveIntegerField(null=True, default=None)
