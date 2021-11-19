@@ -51,17 +51,16 @@ class ShopMediaQueryView(APIView):
         extra_posts_id_list = [post['id'] for post in self.extra_posts]
         media_query_data = scrape.read_user_media_query_data(self.instagram_username)
 
-        index = 0
-        for post_data in media_query_data:
+        media_query_data_copy = media_query_data.copy()
+        for post_data in media_query_data_copy:
             if post_data['id'] in extra_posts_id_list:
-                media_query_data.pop(index)
-            index += 1
+                media_query_data.remove(post_data)
 
         scrape.write_user_media_query_data(self.instagram_username, media_query_data)
 
     def post(self, request):
         """this method will scrape user instagram page, and get query_media data.
-            next it will save the query media in a json file and return status"""
+            next it will save the query media in a json file and return instagram profile info"""
         response = {}
 
         try:
@@ -116,6 +115,8 @@ class ShopMediaQueryView(APIView):
             self.instagram_username = request.query_params['instagram_username']
             self.extra_posts = request.data['extra_posts']
             user_pk = request.data['user_id']
+            if request.user.pk != user_pk:
+                return Response(status=status.HTTP_403_FORBIDDEN)
         except KeyError:
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
@@ -135,7 +136,7 @@ class ShopView(APIView):
     serializer_class = ShopSerializer
     query_set = Shop.objects.all()
 
-    def post(self, request, pk):
+    def post(self, request, vendor_pk):
         response = {}
         request_data = request.data
 
@@ -143,7 +144,7 @@ class ShopView(APIView):
         if not ser.is_valid():
             return Response(ser.errors, status=status.HTTP_400_BAD_REQUEST)
 
-        if ser.data.get('vendor') != pk:
+        if ser.data.get('vendor') != vendor_pk:
             response["error"] = ['pk is not valid']
             return Response(response, status=status.HTTP_400_BAD_REQUEST)
 
@@ -165,8 +166,8 @@ class ShopView(APIView):
         ser.save()
         return Response(ser.data, status=status.HTTP_201_CREATED)
 
-    def get(self, request, pk):
-        shops = self.query_set.filter(vendor_id=pk)
+    def get(self, request, vendor_pk):
+        shops = self.query_set.filter(vendor_id=vendor_pk)
         ser = self.serializer_class(shops, many=True)
         return Response(ser.data, status=status.HTTP_200_OK)
 
@@ -175,11 +176,11 @@ class ShopProductsView(APIView):
     permission_classes = [IsShopOwnerOrReadOnly]
     serializer_class = ProductSerializer
 
-    def post(self, request, pk):    # pk is shop id
+    def post(self, request, shop_pk):    # pk is shop id
         """create all products with query_media json file"""
         response = {}
 
-        shop = get_object_or_404(Shop, pk=pk)
+        shop = get_object_or_404(Shop, pk=shop_pk)
 
         try:
             shop_id = shop.pk
@@ -201,11 +202,16 @@ class ShopProductsView(APIView):
         index = 1
         product_data = {}
         for post_data in media_query:
+            if len(post_data['edge_media_to_caption']['edges']) > 0:
+                post_caption = post_data['edge_media_to_caption']['edges'][0]['node']['text']
+            else:
+                post_caption = ''
+
             product_data["shop"] = shop.pk
             product_data["shortcode"] = post_data['shortcode']
             product_data["display_image"] = f"media/shop/{instagram_username}/{post_data['id']}/display_image.jpg"
             product_data["title"] = f"آنلاین شاپ {instagram_username}، محصول {index}"
-            product_data["description"] = post_data['edge_media_to_caption']['edges'][0]['node']['text']
+            product_data["description"] = post_caption
             product_data["instagram_link"] = post_data['shortcode']
 
             serializer = self.serializer_class(data=product_data)
@@ -215,6 +221,12 @@ class ShopProductsView(APIView):
             index += 1
 
         return Response(status=status.HTTP_200_OK)
+
+    def get(self, request, shop_pk):
+        shop = get_object_or_404(Shop, pk=shop_pk)
+        products = Product.objects.filter(shop_id=shop.id)
+        ser = self.serializer_class(products, many=True)
+        return Response(ser.data, status=status.HTTP_200_OK)
 
 
 class ShopProductsPreviewView(APIView):
