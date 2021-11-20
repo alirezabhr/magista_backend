@@ -361,3 +361,23 @@ class ProductView(APIView):
         ser.is_valid(raise_exception=True)
         ser.save()
         return Response(ser.data, status=status.HTTP_200_OK)
+
+
+class ProductDiscountView(APIView):
+    serializer_class = DiscountSerializer
+
+    def post(self, request, product_shortcode):
+        product = get_object_or_404(Product, shortcode=product_shortcode)
+        if request.data.get('product') != product.id:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+
+        discount_ser = self.serializer_class(data=request.data)
+        discount_ser.is_valid(raise_exception=True)
+        discount_ser.save()
+
+        product_ser = ProductSerializer(product)
+
+        response = discount_ser.data
+        response['product'] = product_ser.data
+
+        return Response(response, status=status.HTTP_201_CREATED)
