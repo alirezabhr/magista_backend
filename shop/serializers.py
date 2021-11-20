@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from .models import Shop, Product, OrderItem, Invoice
+from .models import Shop, Product, OrderItem, Invoice, Discount
 
 
 class ShopSerializer(serializers.ModelSerializer):
@@ -26,6 +26,8 @@ class ShopPreviewSerializer(serializers.ModelSerializer):
 class ProductSerializer(serializers.ModelSerializer):
     updated_at = serializers.DateTimeField(format="%Y-%m-%d %H:%M:%S", read_only=True)
     created_at = serializers.DateTimeField(format="%Y-%m-%d %H:%M:%S", read_only=True)
+    final_price = serializers.ReadOnlyField()
+    discount_percent = serializers.ReadOnlyField()
 
     class Meta:
         model = Product
@@ -56,6 +58,12 @@ class ShopProductsPreviewSerializer(serializers.ModelSerializer):
 class InvoiceSerializer(serializers.ModelSerializer):
     class Meta:
         model = Invoice
+        fields = '__all__'
+
+
+class DiscountSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Discount
         fields = '__all__'
 
 
