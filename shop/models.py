@@ -47,6 +47,13 @@ class Product(models.Model):
         return discount.amount
 
     @property
+    def discount_description(self):
+        discount = Discount.objects.filter(product=self, is_active=True).last()
+        if discount is None:
+            return ''
+        return discount.description
+
+    @property
     def final_price(self):
         return self.original_price - self.discount_amount
 

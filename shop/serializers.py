@@ -28,6 +28,7 @@ class ProductSerializer(serializers.ModelSerializer):
     created_at = serializers.DateTimeField(format="%Y-%m-%d %H:%M:%S", read_only=True)
     final_price = serializers.ReadOnlyField()
     discount_percent = serializers.ReadOnlyField()
+    discount_description = serializers.ReadOnlyField()
 
     class Meta:
         model = Product
@@ -48,6 +49,7 @@ class ShopProductsPreviewSerializer(serializers.ModelSerializer):
             'rate',
             'original_price',
             'discount_percent',
+            'discount_description',
             'final_price',
             'is_existing',
             'shop'
