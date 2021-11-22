@@ -55,7 +55,9 @@ class Product(models.Model):
 
     @property
     def final_price(self):
-        return self.original_price - self.discount_amount
+        if self.original_price:
+            return self.original_price - self.discount_amount
+        return None
 
     def __str__(self):
         return f"{self.pk}: {self.shop} - {self.title}"
