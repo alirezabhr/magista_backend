@@ -8,7 +8,6 @@ urlpatterns = [
     path('<int:shop_pk>/products/', views.ShopProductsView.as_view()),    # for vendor
     path('<str:ig_username>/products/', views.ShopProductsPreviewView.as_view()),    # for customer
     path('<str:ig_username>/preview/', views.ShopPreviewView.as_view(), name='shop-preview'),    # for customer
-    path('cart/', views.CartView.as_view(), name='cart'),
     path('product/<str:product_shortcode>/', views.ProductView.as_view()),
     path('product/<str:product_shortcode>/discount/', views.ProductDiscountView.as_view()),
 ]
