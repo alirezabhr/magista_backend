@@ -5,9 +5,12 @@ from .models import Invoice, OrderItem
 
 
 class InvoiceSerializer(serializers.ModelSerializer):
+    orders = serializers.ReadOnlyField()
+
     class Meta:
         model = Invoice
         fields = '__all__'
+        depth = 1
 
 
 class OrderItemSerializer(serializers.ModelSerializer):
