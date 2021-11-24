@@ -22,10 +22,7 @@ class Invoice(models.Model):
 
     @property
     def orders(self):
-        res = []
-        for i in OrderItem.objects.filter(invoice=self):
-            res.append(model_to_dict(i))
-        return res
+        return OrderItem.objects.filter(invoice=self)
 
     def __str__(self):
         return f"id: {self.pk} | {self.created_at} | status: {self.status}"
