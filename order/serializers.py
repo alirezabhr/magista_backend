@@ -4,20 +4,21 @@ from shop.models import Product
 from .models import Invoice, OrderItem
 
 
-class InvoiceSerializer(serializers.ModelSerializer):
-    orders = serializers.ReadOnlyField()
-
-    class Meta:
-        model = Invoice
-        fields = '__all__'
-        depth = 1
-
-
 class OrderItemSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = OrderItem
         fields = '__all__'
+        depth = 1
+
+
+class InvoiceSerializer(serializers.ModelSerializer):
+    orders = OrderItemSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Invoice
+        fields = '__all__'
+        depth = 1
 
 
 class CartProductSerializer(serializers.ModelSerializer):
@@ -42,4 +43,3 @@ class CartShopOrdersSerializer(serializers.Serializer):
 class CartSerializer(serializers.Serializer):
     customer_id = serializers.IntegerField()
     cart = CartShopOrdersSerializer(many=True)
-
