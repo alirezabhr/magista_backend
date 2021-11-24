@@ -2,9 +2,11 @@ from rest_framework import serializers
 
 from shop.models import Product
 from .models import Invoice, OrderItem
+from shop.serializers import ProductSerializer
 
 
 class OrderItemSerializer(serializers.ModelSerializer):
+    product = ProductSerializer(read_only=True)
 
     class Meta:
         model = OrderItem
