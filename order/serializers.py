@@ -5,7 +5,7 @@ from .models import Invoice, OrderItem
 from shop.serializers import ProductSerializer
 
 
-class OrderItemSerializer(serializers.ModelSerializer):
+class OrderItemRetrieveSerializer(serializers.ModelSerializer):
     product = ProductSerializer(read_only=True)
 
     class Meta:
@@ -14,13 +14,27 @@ class OrderItemSerializer(serializers.ModelSerializer):
         depth = 1
 
 
-class InvoiceSerializer(serializers.ModelSerializer):
-    orders = OrderItemSerializer(many=True, read_only=True)
+class InvoiceRetrieveSerializer(serializers.ModelSerializer):
+    orders = OrderItemRetrieveSerializer(many=True, read_only=True)
 
     class Meta:
         model = Invoice
         fields = '__all__'
         depth = 1
+
+
+class OrderItemSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = OrderItem
+        fields = '__all__'
+
+
+class InvoiceSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Invoice
+        fields = '__all__'
 
 
 class CartProductSerializer(serializers.ModelSerializer):
