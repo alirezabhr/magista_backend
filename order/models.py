@@ -1,4 +1,5 @@
 from django.db import models
+from django.forms.models import model_to_dict
 
 from shop.models import Shop, Product
 from user.models import Customer
@@ -19,6 +20,13 @@ class Invoice(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
+    @property
+    def orders(self):
+        res = []
+        for i in OrderItem.objects.filter(invoice=self):
+            res.append(model_to_dict(i))
+        return res
+
     def __str__(self):
         return f"id: {self.pk} | {self.created_at} | status: {self.status}"
 
@@ -31,4 +39,3 @@ class OrderItem(models.Model):
 
     def __str__(self):
         return f"id: {self.pk} | invoice: {self.invoice.pk}"
-
