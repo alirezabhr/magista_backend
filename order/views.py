@@ -35,12 +35,12 @@ class CartView(APIView):
                     product = Product.objects.get(pk=order['product']['id'])
                 except Product.DoesNotExist:
                     return Response({'error': 'product does not exist'}, status=status.HTTP_400_BAD_REQUEST)
-                price = product.final_price
+
                 order_item_data = {
                     'invoice': invoice.pk,
-                    'product': order['product']['id'],
+                    'product': product.id,
                     'count': order['count'],
-                    'price': price
+                    'price': product.final_price
                 }
 
                 order_item_serializer = OrderItemSerializer(data=order_item_data)
@@ -50,7 +50,7 @@ class CartView(APIView):
             invoice_list.append(invoice)
 
         ser = InvoiceSerializer(invoice_list, many=True)
-        return Response(ser.data, status=status.HTTP_200_OK)
+        return Response(ser.data, status=status.HTTP_201_CREATED)
 
     def put(self, request):     # pay invoices (just for customer)
         user = request.user
@@ -72,4 +72,24 @@ class CartView(APIView):
                 return Response(status=status.HTTP_400_BAD_REQUEST)
 
         ser = self.invoice_serializer_class(invoice_list, many=True)
+        return Response(ser.data, status=status.HTTP_200_OK)
+
+
+class ShopInvoicesView(APIView):
+    serializer_class = InvoiceSerializer
+    query_set = Invoice.objects.all()
+
+    def get(self, request, shop_pk):
+        invoices = self.query_set.filter(shop_id=shop_pk)
+        ser = self.serializer_class(invoices, many=True)
+        return Response(ser.data, status=status.HTTP_200_OK)
+
+
+class CustomerOrdersView(APIView):
+    serializer_class = InvoiceSerializer
+    query_set = Invoice.objects.all()
+
+    def get(self, request, customer_pk):
+        invoices = self.query_set.filter(customer_id=customer_pk)
+        ser = self.serializer_class(invoices, many=True)
         return Response(ser.data, status=status.HTTP_200_OK)
