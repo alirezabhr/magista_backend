@@ -1,8 +1,15 @@
 from rest_framework import serializers
 
 from shop.models import Product
-from .models import Order, OrderItem
+from user.serializers import CustomerSerializer
+from .models import OrderItem, IPGPayment, Order
 from shop.serializers import ProductSerializer
+
+
+class IPGPaymentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = IPGPayment
+        fields = '__all__'
 
 
 class OrderItemRetrieveSerializer(serializers.ModelSerializer):
@@ -16,6 +23,8 @@ class OrderItemRetrieveSerializer(serializers.ModelSerializer):
 
 class OrderRetrieveSerializer(serializers.ModelSerializer):
     order_items = OrderItemRetrieveSerializer(many=True, read_only=True)
+    customer = CustomerSerializer(read_only=True)
+    total_price = serializers.ReadOnlyField()
 
     class Meta:
         model = Order
@@ -53,7 +62,7 @@ class CartOrderItemSerializer(serializers.Serializer):
 
 class CartShopOrdersSerializer(serializers.Serializer):
     shop_id = serializers.IntegerField()
-    orders = CartOrderItemSerializer(many=True)
+    order_items = CartOrderItemSerializer(many=True)
 
 
 class CartSerializer(serializers.Serializer):
