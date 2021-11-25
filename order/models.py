@@ -7,7 +7,9 @@ from user.models import Customer
 # Create your models here.
 class IPGPayment(models.Model):
     customer = models.ForeignKey(Customer, models.PROTECT)
-    amount = models.IntegerField()
+    amount = models.IntegerField(null=True)
+    token = models.CharField(max_length=50, null=True)
+    updated_at = models.DateTimeField(auto_now=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     @property
