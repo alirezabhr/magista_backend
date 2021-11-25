@@ -4,7 +4,7 @@ from rest_framework.response import Response
 
 from shop.models import Product
 from .models import Invoice
-from .serializers import InvoiceSerializer, CartSerializer, OrderItemSerializer
+from .serializers import InvoiceSerializer, CartSerializer, OrderItemSerializer, InvoiceRetrieveSerializer
 
 
 # Create your views here.
@@ -76,7 +76,7 @@ class CartView(APIView):
 
 
 class ShopInvoicesView(APIView):
-    serializer_class = InvoiceSerializer
+    serializer_class = InvoiceRetrieveSerializer
     query_set = Invoice.objects.all()
 
     def get(self, request, shop_pk):
@@ -86,7 +86,7 @@ class ShopInvoicesView(APIView):
 
 
 class CustomerOrdersView(APIView):
-    serializer_class = InvoiceSerializer
+    serializer_class = InvoiceRetrieveSerializer
     query_set = Invoice.objects.all()
 
     def get(self, request, customer_pk):
