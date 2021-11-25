@@ -1,31 +1,37 @@
-import json
-
 from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
 
 from shop.models import Product
 from .models import Order
-from .serializers import OrderSerializer, CartSerializer, OrderItemSerializer, OrderRetrieveSerializer
+from .serializers import OrderSerializer, CartSerializer, OrderItemSerializer, OrderRetrieveSerializer, \
+    IPGPaymentSerializer
 
 
 # Create your views here.
 class CartView(APIView):
     serializer_class = CartSerializer
     order_serializer_class = OrderSerializer
+    payment_serializer_class = IPGPaymentSerializer
 
     def post(self, request):     # create orders (just for customer)
         data = request.data
-        print(json.dumps(data))
         cart_ser = self.serializer_class(data=data)
         cart_ser.is_valid(raise_exception=True)
 
         order_list = []
 
-        for shop_order in data['cart']:
+        ipg_payment_data = {
+            'customer': data['customer_id']
+        }
+        ipg_payment_ser = self.payment_serializer_class(data=ipg_payment_data)
+        ipg_payment_ser.is_valid(raise_exception=True)
+        ipg = ipg_payment_ser.save()
+
+        for order_sample in data['cart']:
             order_data = {
-                'shop': shop_order['shop_id'],
-                'customer': data['customer_id'],
+                'ipg_payment': ipg.id,
+                'shop': order_sample['shop_id'],
                 'status': Order.Status.AWAITING_PAYMENT,
             }
 
@@ -33,16 +39,16 @@ class CartView(APIView):
             order_serializer.is_valid(raise_exception=True)
             order = order_serializer.save()
 
-            for order in shop_order['orders']:
+            for order_item in order_sample['order_items']:
                 try:
-                    product = Product.objects.get(pk=order['product']['id'])
+                    product = Product.objects.get(pk=order_item['product']['id'])
                 except Product.DoesNotExist:
                     return Response({'error': 'product does not exist'}, status=status.HTTP_400_BAD_REQUEST)
 
                 order_item_data = {
                     'order': order.pk,
                     'product': product.id,
-                    'count': order['count'],
+                    'count': order_item['count'],
                     'price': product.final_price
                 }
 
@@ -93,6 +99,6 @@ class CustomerOrdersView(APIView):
     query_set = Order.objects.all()
 
     def get(self, request, customer_pk):
-        orders = self.query_set.filter(customer_id=customer_pk)
+        orders = self.query_set.filter(ipg_payment__customer_id=customer_pk)
         ser = self.serializer_class(orders, many=True)
         return Response(ser.data, status=status.HTTP_200_OK)
