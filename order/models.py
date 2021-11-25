@@ -1,11 +1,24 @@
 from django.db import models
-from django.forms.models import model_to_dict
 
 from shop.models import Shop, Product
 from user.models import Customer
 
 
 # Create your models here.
+class IPGPayment(models.Model):
+    amount = models.IntegerField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    @property
+    def invoices(self):
+        return Invoice.objects.filter(ipg_payment=self)
+
+    @property
+    def customer(self):
+        if self.invoices:
+            return self.invoices.last().customer
+
+
 class Invoice(models.Model):
     class Status(models.IntegerChoices):
         AWAITING_PAYMENT = 1
@@ -14,6 +27,7 @@ class Invoice(models.Model):
         RECEIVED = 4
         CANCELED = 5
 
+    # ipg_payment = models.ForeignKey(IPGPayment, models.PROTECT)
     shop = models.ForeignKey(Shop, models.PROTECT)
     customer = models.ForeignKey(Customer, models.PROTECT)
     status = models.IntegerField(choices=Status.choices)
