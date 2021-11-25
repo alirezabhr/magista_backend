@@ -1,7 +1,7 @@
 from rest_framework import serializers
 
 from shop.models import Product
-from .models import Invoice, OrderItem
+from .models import Order, OrderItem
 from shop.serializers import ProductSerializer
 
 
@@ -14,11 +14,11 @@ class OrderItemRetrieveSerializer(serializers.ModelSerializer):
         depth = 1
 
 
-class InvoiceRetrieveSerializer(serializers.ModelSerializer):
-    orders = OrderItemRetrieveSerializer(many=True, read_only=True)
+class OrderRetrieveSerializer(serializers.ModelSerializer):
+    order_items = OrderItemRetrieveSerializer(many=True, read_only=True)
 
     class Meta:
-        model = Invoice
+        model = Order
         fields = '__all__'
         depth = 1
 
@@ -30,10 +30,10 @@ class OrderItemSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
-class InvoiceSerializer(serializers.ModelSerializer):
+class OrderSerializer(serializers.ModelSerializer):
 
     class Meta:
-        model = Invoice
+        model = Order
         fields = '__all__'
 
 

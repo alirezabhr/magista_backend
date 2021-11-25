@@ -1,34 +1,37 @@
+import json
+
 from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
 
 from shop.models import Product
-from .models import Invoice
-from .serializers import InvoiceSerializer, CartSerializer, OrderItemSerializer, InvoiceRetrieveSerializer
+from .models import Order
+from .serializers import OrderSerializer, CartSerializer, OrderItemSerializer, OrderRetrieveSerializer
 
 
 # Create your views here.
 class CartView(APIView):
     serializer_class = CartSerializer
-    invoice_serializer_class = InvoiceSerializer
+    order_serializer_class = OrderSerializer
 
-    def post(self, request):     # create invoices (just for customer)
+    def post(self, request):     # create orders (just for customer)
         data = request.data
+        print(json.dumps(data))
         cart_ser = self.serializer_class(data=data)
         cart_ser.is_valid(raise_exception=True)
 
-        invoice_list = []
+        order_list = []
 
         for shop_order in data['cart']:
-            invoice_data = {
+            order_data = {
                 'shop': shop_order['shop_id'],
                 'customer': data['customer_id'],
-                'status': Invoice.Status.AWAITING_PAYMENT,
+                'status': Order.Status.AWAITING_PAYMENT,
             }
 
-            invoice_serializer = InvoiceSerializer(data=invoice_data)
-            invoice_serializer.is_valid(raise_exception=True)
-            invoice = invoice_serializer.save()
+            order_serializer = self.order_serializer_class(data=order_data)
+            order_serializer.is_valid(raise_exception=True)
+            order = order_serializer.save()
 
             for order in shop_order['orders']:
                 try:
@@ -37,7 +40,7 @@ class CartView(APIView):
                     return Response({'error': 'product does not exist'}, status=status.HTTP_400_BAD_REQUEST)
 
                 order_item_data = {
-                    'invoice': invoice.pk,
+                    'order': order.pk,
                     'product': product.id,
                     'count': order['count'],
                     'price': product.final_price
@@ -47,49 +50,49 @@ class CartView(APIView):
                 order_item_serializer.is_valid(raise_exception=True)
                 order_item_serializer.save()
 
-            invoice_list.append(invoice)
+            order_list.append(order)
 
-        ser = InvoiceSerializer(invoice_list, many=True)
+        ser = self.order_serializer_class(order_list, many=True)
         return Response(ser.data, status=status.HTTP_201_CREATED)
 
-    def put(self, request):     # pay invoices (just for customer)
+    def put(self, request):     # pay orders (just for customer)
         user = request.user
 
         data = request.data
-        ser = self.invoice_serializer_class(data=data, many=True)
+        ser = self.order_serializer_class(data=data, many=True)
         ser.is_valid(raise_exception=True)
 
-        invoice_list = []
-        for invoice_data in data:
+        order_list = []
+        for order_data in data:
             try:
-                invoice = Invoice.objects.get(pk=invoice_data['id'])
-                if invoice.customer.user != user:
+                order = Order.objects.get(pk=order_data['id'])
+                if order.customer.user != user:
                     return Response(status=status.HTTP_403_FORBIDDEN)
-                invoice.status = Invoice.Status.PAID
-                invoice.save()
-                invoice_list.append(invoice)
-            except Invoice.DoesNotExist:
+                order.status = Order.Status.PAID
+                order.save()
+                order_list.append(order)
+            except Order.DoesNotExist:
                 return Response(status=status.HTTP_400_BAD_REQUEST)
 
-        ser = self.invoice_serializer_class(invoice_list, many=True)
+        ser = self.order_serializer_class(order_list, many=True)
         return Response(ser.data, status=status.HTTP_200_OK)
 
 
-class ShopInvoicesView(APIView):
-    serializer_class = InvoiceRetrieveSerializer
-    query_set = Invoice.objects.all()
+class ShopOrdersView(APIView):
+    serializer_class = OrderRetrieveSerializer
+    query_set = Order.objects.all()
 
     def get(self, request, shop_pk):
-        invoices = self.query_set.filter(shop_id=shop_pk)
-        ser = self.serializer_class(invoices, many=True)
+        orders = self.query_set.filter(shop_id=shop_pk)
+        ser = self.serializer_class(orders, many=True)
         return Response(ser.data, status=status.HTTP_200_OK)
 
 
 class CustomerOrdersView(APIView):
-    serializer_class = InvoiceRetrieveSerializer
-    query_set = Invoice.objects.all()
+    serializer_class = OrderRetrieveSerializer
+    query_set = Order.objects.all()
 
     def get(self, request, customer_pk):
-        invoices = self.query_set.filter(customer_id=customer_pk)
-        ser = self.serializer_class(invoices, many=True)
+        orders = self.query_set.filter(customer_id=customer_pk)
+        ser = self.serializer_class(orders, many=True)
         return Response(ser.data, status=status.HTTP_200_OK)
