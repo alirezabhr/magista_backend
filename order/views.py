@@ -5,14 +5,14 @@ from rest_framework.response import Response
 from shop.models import Product
 from .models import Order
 from .serializers import OrderSerializer, CartSerializer, OrderItemSerializer, OrderRetrieveSerializer, \
-    IPGPaymentSerializer
+    InvoiceSerializer
 
 
 # Create your views here.
 class CartView(APIView):
     serializer_class = CartSerializer
     order_serializer_class = OrderSerializer
-    payment_serializer_class = IPGPaymentSerializer
+    invoice_serializer_class = InvoiceSerializer
 
     def post(self, request):     # create orders (just for customer)
         data = request.data
@@ -21,16 +21,16 @@ class CartView(APIView):
 
         order_list = []
 
-        ipg_payment_data = {
+        invoice_data = {
             'customer': data['customer_id']
         }
-        ipg_payment_ser = self.payment_serializer_class(data=ipg_payment_data)
-        ipg_payment_ser.is_valid(raise_exception=True)
-        ipg = ipg_payment_ser.save()
+        invoice_ser = self.invoice_serializer_class(data=invoice_data)
+        invoice_ser.is_valid(raise_exception=True)
+        invoice = invoice_ser.save()
 
         for order_sample in data['cart']:
             order_data = {
-                'ipg_payment': ipg.id,
+                'invoice': invoice.id,
                 'shop': order_sample['shop_id'],
                 'status': Order.Status.AWAITING_PAYMENT,
             }
@@ -58,30 +58,8 @@ class CartView(APIView):
 
             order_list.append(order)
 
-        ser = self.order_serializer_class(order_list, many=True)
+        ser = self.invoice_serializer_class(invoice)
         return Response(ser.data, status=status.HTTP_201_CREATED)
-
-    def put(self, request):     # pay orders (just for customer)
-        user = request.user
-
-        data = request.data
-        ser = self.order_serializer_class(data=data, many=True)
-        ser.is_valid(raise_exception=True)
-
-        order_list = []
-        for order_data in data:
-            try:
-                order = Order.objects.get(pk=order_data['id'])
-                if order.customer.user != user:
-                    return Response(status=status.HTTP_403_FORBIDDEN)
-                order.status = Order.Status.PAID
-                order.save()
-                order_list.append(order)
-            except Order.DoesNotExist:
-                return Response(status=status.HTTP_400_BAD_REQUEST)
-
-        ser = self.order_serializer_class(order_list, many=True)
-        return Response(ser.data, status=status.HTTP_200_OK)
 
 
 class ShopOrdersView(APIView):
@@ -99,6 +77,6 @@ class CustomerOrdersView(APIView):
     query_set = Order.objects.all()
 
     def get(self, request, customer_pk):
-        orders = self.query_set.filter(ipg_payment__customer_id=customer_pk)
+        orders = self.query_set.filter(invoice__customer_id=customer_pk)
         ser = self.serializer_class(orders, many=True)
         return Response(ser.data, status=status.HTTP_200_OK)
