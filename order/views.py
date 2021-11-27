@@ -1,9 +1,10 @@
 from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
+from rest_framework.generics import get_object_or_404
 
 from shop.models import Product
-from .models import Order
+from .models import Order, Invoice
 from .serializers import OrderSerializer, CartSerializer, OrderItemSerializer, OrderRetrieveSerializer, \
     InvoiceSerializer
 
@@ -79,4 +80,13 @@ class CustomerOrdersView(APIView):
     def get(self, request, customer_pk):
         orders = self.query_set.filter(invoice__customer_id=customer_pk)
         ser = self.serializer_class(orders, many=True)
+        return Response(ser.data, status=status.HTTP_200_OK)
+
+
+class InvoiceView(APIView):
+    serializer_class = InvoiceSerializer
+
+    def get(self, request, invoice_pk):
+        invoice = get_object_or_404(Invoice, pk=invoice_pk)
+        ser = self.serializer_class(invoice)
         return Response(ser.data, status=status.HTTP_200_OK)
