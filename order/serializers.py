@@ -12,7 +12,6 @@ class OrderItemRetrieveSerializer(serializers.ModelSerializer):
     class Meta:
         model = OrderItem
         fields = '__all__'
-        depth = 1
 
 
 class OrderRetrieveSerializer(serializers.ModelSerializer):
@@ -20,6 +19,8 @@ class OrderRetrieveSerializer(serializers.ModelSerializer):
     customer = CustomerSerializer(read_only=True)
     total_price = serializers.ReadOnlyField()
     status_text = serializers.ReadOnlyField()
+    updated_at = serializers.DateTimeField(format="%Y-%m-%d %H:%M:%S", read_only=True)
+    created_at = serializers.ReadOnlyField()
 
     class Meta:
         model = Order
@@ -35,6 +36,8 @@ class OrderItemSerializer(serializers.ModelSerializer):
 
 
 class OrderSerializer(serializers.ModelSerializer):
+    updated_at = serializers.DateTimeField(format="%Y-%m-%d %H:%M:%S", read_only=True)
+    created_at = serializers.ReadOnlyField()
 
     class Meta:
         model = Order
@@ -68,6 +71,7 @@ class CartSerializer(serializers.Serializer):
 class InvoiceSerializer(serializers.ModelSerializer):
     orders = OrderRetrieveSerializer(many=True, read_only=True)
     total_amount = serializers.ReadOnlyField()
+    created_at = serializers.DateTimeField(format="%Y-%m-%d %H:%M:%S", read_only=True)
 
     class Meta:
         model = Invoice
@@ -75,6 +79,9 @@ class InvoiceSerializer(serializers.ModelSerializer):
 
 
 class IPGPaymentSerializer(serializers.ModelSerializer):
+    updated_at = serializers.DateTimeField(format="%Y-%m-%d %H:%M:%S", read_only=True)
+    created_at = serializers.DateTimeField(format="%Y-%m-%d %H:%M:%S", read_only=True)
+
     class Meta:
         model = IPGPayment
         fields = '__all__'
