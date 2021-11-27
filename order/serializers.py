@@ -19,6 +19,7 @@ class OrderRetrieveSerializer(serializers.ModelSerializer):
     order_items = OrderItemRetrieveSerializer(many=True, read_only=True)
     customer = CustomerSerializer(read_only=True)
     total_price = serializers.ReadOnlyField()
+    status_text = serializers.ReadOnlyField()
 
     class Meta:
         model = Order
