@@ -1,3 +1,5 @@
+from django.conf import settings
+from django.utils.timezone import localtime
 from django.db import models
 
 from shop.models import Shop, Product
@@ -5,19 +7,45 @@ from user.models import Customer
 
 
 # Create your models here.
-class IPGPayment(models.Model):
+class IPGTokenRequestPayload:
+    def __init__(self, invoice_num, invoice_date, amount, redirect_url):
+        self.invoice_number = invoice_num
+        self.invoice_date = invoice_date
+        self.terminal_code = settings.TERMINAL_CODE
+        self.merchant_code = settings.MERCHANT_CODE
+        self.amount = amount
+        self.redirect_address = f"https:magista.ir/payment/result/{redirect_url}"
+        self.time_stamp = localtime()
+        self.action = 1003
+
+
+class Invoice(models.Model):
     customer = models.ForeignKey(Customer, models.PROTECT)
-    amount = models.IntegerField(null=True)
-    token = models.CharField(max_length=50, null=True)
-    updated_at = models.DateTimeField(auto_now=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     @property
     def orders(self):
-        return Order.objects.filter(ipg_payment=self)
+        return Order.objects.filter(invoice=self)
+
+    @property
+    def total_amount(self):
+        total = 0
+        for order in self.orders:
+            total += order.total_price
+        return total
+
+
+class IPGPayment(models.Model):
+    invoice = models.OneToOneField(Invoice, models.PROTECT)
+    amount = models.IntegerField()
+    token = models.CharField(max_length=50)
+    updated_at = models.DateTimeField(auto_now=True)
+    created_at = models.DateTimeField(auto_now_add=True)
 
 
 class Order(models.Model):
+    status_text_list = ['در انتظار پرداخت', 'پرداخت شده', 'ارسال شده', 'دریافت شده', 'لغو شده']
+
     class Status(models.IntegerChoices):
         AWAITING_PAYMENT = 1
         PAID = 2
@@ -25,7 +53,7 @@ class Order(models.Model):
         RECEIVED = 4
         CANCELED = 5
 
-    ipg_payment = models.ForeignKey(IPGPayment, models.PROTECT)
+    invoice = models.ForeignKey(Invoice, models.PROTECT)
     shop = models.ForeignKey(Shop, models.PROTECT)
     status = models.IntegerField(choices=Status.choices)
     updated_at = models.DateTimeField(auto_now=True)
@@ -37,7 +65,7 @@ class Order(models.Model):
 
     @property
     def customer(self):
-        return self.ipg_payment.customer
+        return self.invoice.customer
 
     @property
     def total_price(self):
@@ -45,6 +73,10 @@ class Order(models.Model):
         for item in self.order_items:
             total += item.price * item.count
         return total
+
+    @property
+    def status_text(self):
+        return self.status_text_list[self.status-1]
 
     def __str__(self):
         return f"id: {self.pk} | {self.created_at} | status: {self.status}"
