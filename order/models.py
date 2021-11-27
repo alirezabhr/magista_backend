@@ -1,24 +1,11 @@
-from django.conf import settings
-from django.utils.timezone import localtime
 from django.db import models
+from django.utils import timezone
 
 from shop.models import Shop, Product
 from user.models import Customer
 
 
 # Create your models here.
-class IPGTokenRequestPayload:
-    def __init__(self, invoice_num, invoice_date, amount, redirect_url):
-        self.invoice_number = invoice_num
-        self.invoice_date = invoice_date
-        self.terminal_code = settings.TERMINAL_CODE
-        self.merchant_code = settings.MERCHANT_CODE
-        self.amount = amount
-        self.redirect_address = f"https:magista.ir/payment/result/{redirect_url}"
-        self.time_stamp = localtime()
-        self.action = 1003
-
-
 class Invoice(models.Model):
     customer = models.ForeignKey(Customer, models.PROTECT)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -57,7 +44,10 @@ class Order(models.Model):
     shop = models.ForeignKey(Shop, models.PROTECT)
     status = models.IntegerField(choices=Status.choices)
     updated_at = models.DateTimeField(auto_now=True)
-    created_at = models.DateTimeField(auto_now_add=True)
+
+    @property
+    def created_at(self):
+        return self.invoice.created_at
 
     @property
     def order_items(self):
