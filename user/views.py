@@ -122,7 +122,7 @@ def send_otp_view(request):
         response["phone"] = ["This field is required."]
         return Response(response, status=status.HTTP_400_BAD_REQUEST)
 
-    otp_code = random.randint(10000, 99999)
+    otp_code = random.randint(100000, 999999)
 
     try:
         SMSService().send_otp(phone=phone, otp=otp_code)
