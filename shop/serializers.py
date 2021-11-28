@@ -20,7 +20,8 @@ class ShopPreviewSerializer(serializers.ModelSerializer):
             'instagram_username',
             'province',
             'city',
-            'profile_pic'
+            'profile_pic',
+            'created_at',
         ]
         model = Shop
 
@@ -56,6 +57,8 @@ class ShopProductsPreviewSerializer(serializers.ModelSerializer):
             'discount_description',
             'final_price',
             'is_existing',
+            'updated_at',
+            'created_at',
             'shop'
         ]
         depth = 1
