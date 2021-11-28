@@ -94,7 +94,7 @@ class Pep:
             return response
 
     def get_pep_redirect_url(self, amount, invoice_number, invoice_date, mobile='', email=''):
-        # type: (str, str, str, str, str) -> dict
+        # type: (str, str, str, str, str) -> tuple
         params = {
             'Amount': amount,
             'InvoiceNumber': invoice_number,
@@ -108,19 +108,19 @@ class Pep:
             'TimeStamp': self._gen_time_stamp(),
         }
         response = self._request_builder(self.URL_GET_TOKEN, params)
-        return self.URL_PAYMENT_GATEWAY + "?n=" + response["Token"]
+        return response["Token"], self.URL_PAYMENT_GATEWAY + "?n=" + response["Token"]
 
     def check_transaction(self, reference_id, invoice_number, invoice_date):
         # type: (str, str, str) -> dict
         params = {
-            'transactionReferenceID': reference_id,
-            'invoiceNumber': invoice_number,
-            'invoiceDate': invoice_date,
-            'merchantCode': self._merchant_code,
-            'terminalCode': self._terminal_id,
+            'TransactionReferenceID': reference_id,
+            'InvoiceNumber': invoice_number,
+            'InvoiceDate': invoice_date,
+            'MerchantCode': self._merchant_code,
+            'TerminalCode': self._terminal_id,
         }
         response = self._request_builder(self.URL_CHECK_TRANSACTION, params)
-        return self.URL_PAYMENT_GATEWAY + "?n=" + response["Token"]
+        return response
 
     def verify_payment(self, amount, invoice_number, invoice_date):
         # type: (str, str, str) -> dict
