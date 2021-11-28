@@ -1,5 +1,4 @@
 from django.db import models
-from django.utils import timezone
 
 from shop.models import Shop, Product
 from user.models import Customer
@@ -22,12 +21,25 @@ class Invoice(models.Model):
         return total
 
 
-class IPGPayment(models.Model):
+class PaymentInvoice(models.Model):
     invoice = models.OneToOneField(Invoice, models.PROTECT)
     amount = models.IntegerField()
     token = models.CharField(max_length=50)
-    updated_at = models.DateTimeField(auto_now=True)
     created_at = models.DateTimeField(auto_now_add=True)
+
+
+class PaymentDetail(models.Model):
+    payment_invoice = models.OneToOneField(PaymentInvoice, models.PROTECT)
+    ref_number = models.BigIntegerField()   # شماره ارجاع
+    trx_ref_id = models.CharField(max_length=40)    # شماره ارجاع داخلی
+    trace_number = models.IntegerField()    # شماره پیگیری
+    shaparak_ref_number = models.CharField(max_length=40)   # شماره ارجاع شاپرک
+    masked_card_number = models.CharField(max_length=20)    # شماره کارت ماسک شده
+    paid_at = models.DateTimeField(auto_now_add=True)
+
+    @property
+    def amount(self):
+        return self.payment_invoice.amount
 
 
 class Order(models.Model):
