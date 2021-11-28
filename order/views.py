@@ -4,9 +4,11 @@ from rest_framework.response import Response
 from rest_framework.generics import get_object_or_404
 
 from shop.models import Product
-from .models import Order, Invoice
+from .models import Order, Invoice, PaymentInvoice
 from .serializers import OrderSerializer, CartSerializer, OrderItemSerializer, OrderRetrieveSerializer, \
-    InvoiceSerializer
+    InvoiceSerializer, PaymentInvoiceSerializer, PaymentResultSerializer, PaymentDetailSerializer
+
+from payment.pep import Pep, PepError
 
 
 # Create your views here.
@@ -90,3 +92,88 @@ class InvoiceView(APIView):
         invoice = get_object_or_404(Invoice, pk=invoice_pk)
         ser = self.serializer_class(invoice)
         return Response(ser.data, status=status.HTTP_200_OK)
+
+
+class PaymentView(APIView):
+    serializer_class = PaymentInvoiceSerializer
+
+    def post(self, request):
+        """
+        get ipg token and redirect url. also create Payment Invoice object
+        """
+        ser = InvoiceSerializer(data=request.data)
+        ser.is_valid(raise_exception=True)
+        try:
+            invoice = Invoice.objects.get(pk=request.data.get('id'))
+        except Invoice.DoesNotExist:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+
+        amount_rial = str(invoice.total_amount) + '0'
+        invoice_number = str(invoice.id)
+        invoice_date = str(invoice.created_at)
+
+        pep = Pep()
+        try:
+            token, redirect_url = pep.get_pep_redirect_url(amount_rial, invoice_number, invoice_date)
+        except PepError as error:
+            rsp = {'error': error.error_message}
+            return Response(rsp, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+
+        data = {
+            'invoice': invoice.id,
+            'amount': int(amount_rial),
+            'token': token
+        }
+        ser = self.serializer_class(data=data)
+        ser.is_valid(raise_exception=True)
+        ser.save()
+
+        response = {'url': redirect_url}
+        return Response(response, status=status.HTTP_200_OK)
+
+    def put(self, request):
+        """
+        check transaction status and verify payment if it was successful. also create a Payment Detail
+        object and set trace number
+        """
+        data = request.data
+        ser = PaymentResultSerializer(data=data)
+        ser.is_valid(raise_exception=True)
+
+        pep = Pep()
+        try:    # check transaction status
+            check_trx_response = pep.check_transaction(data['trx_reference_id'], data['invoice_number'], data['invoice_date'])
+            reference_num = check_trx_response['ReferenceNumber']
+            trace_num = check_trx_response['TraceNumber']
+            trx_ref_id = check_trx_response['TransactionReferenceID']
+            invoice_num = check_trx_response['InvoiceNumber']
+            invoice_date = check_trx_response['InvoiceDate']
+            amount = check_trx_response['Amount']
+            print('invoice num type:')
+            print(type(invoice_num))
+        except PepError as error:
+            rsp = {'error': error.error_message}
+            return Response(rsp, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+
+        try:    # verify transaction
+            verify_trx_response = pep.verify_payment(amount, str(invoice_num), invoice_date)
+            masked_card_num = verify_trx_response['MaskedCardNumber']
+            shaparak_ref_num = verify_trx_response['ShaparakRefNumber']
+        except PepError as error:
+            rsp = {'error': error.error_message}
+            return Response(rsp, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+
+        payment_invoice = PaymentInvoice.objects.get(invoice=int(invoice_num))
+        payment_detail = {
+            'payment_invoice': payment_invoice.pk,
+            'ref_number': reference_num,
+            'trx_ref_id': trx_ref_id,
+            'trace_number': trace_num,
+            'shaparak_ref_number': shaparak_ref_num,
+            'masked_card_number': masked_card_num,
+        }
+        ser = PaymentDetailSerializer(data=payment_detail)
+        ser.is_valid(raise_exception=True)
+        ser.save()
+
+        return Response(ser.data, status=status.HTTP_202_ACCEPTED)
