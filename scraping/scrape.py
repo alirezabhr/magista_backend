@@ -56,7 +56,7 @@ class Scraper:
             self.rhx_gis = ""
         else:
             logger('Login failed for ' + self.username)
-            raise CustomException(500, 'Login failed')
+            raise CustomException(503, 'Login failed')
 
     def logout(self):
         """Logs out of instagram."""
@@ -82,7 +82,7 @@ class Scraper:
                 'status_code': response.status_code,
                 'text': response.text
             }
-            raise CustomException(500, error_data)
+            raise CustomException(503, error_data)
 
     def query_media_gen(self, user_id, end_cursor=''):
         """Generator for media."""
@@ -102,7 +102,7 @@ class Scraper:
                         return
             except ValueError:
                 logger('Failed to query media for user ' + user_id)
-                raise CustomException(500, 'Failed to query media for user ' + user_id)
+                raise CustomException(503, 'Failed to query media for user ' + user_id)
 
     def __query_media(self, ig_id, end_cursor=''):
         params = QUERY_MEDIA_VARS.format(ig_id, end_cursor)
@@ -168,11 +168,11 @@ def scrape_instagram_media(username):
         user_info = json.loads(data)['graphql']['user']
     except:
         logger('cant get user info')
-        raise CustomException(500, 'cant get user info')
+        raise CustomException(503, 'cant get user info')
 
     if user_info['is_private']:
         print('Private Page')
-        raise CustomException(400, "Your page is private")
+        raise CustomException(451, "پیج مورد نظر پرایوت است")
 
     profile_info = {
         'username': username,
@@ -242,14 +242,14 @@ def save_preview_images(username, page):
         post_preview_data = read_user_media_query_data(username)
         posts_count = len(post_preview_data)
     except Exception:
-        raise CustomException(500, "Can't get page preview data")
+        raise CustomException(503, "Can't get page preview data")
 
     if page is None:
         pagination_size = posts_count
         page = 1
     else:
         if page < 1 or page > (posts_count // pagination_size) + 1:
-            raise CustomException(400, "Paginator value is not valid!")
+            raise CustomException(406, "Paginator value is not valid!")
 
     start_post = (page - 1) * pagination_size
     if page * pagination_size > posts_count:
@@ -269,7 +269,7 @@ def save_profile_image(username):
     try:
         user_info_data = read_user_profile_info_data(username)
     except FileNotFoundError:
-        raise CustomException(400, 'اطلاعات اینستاگرام فروشگاه ثبت نشده است.')
+        raise CustomException(503, 'اطلاعات اینستاگرام فروشگاه ثبت نشده است.')
 
     profile_url = user_info_data['profile_pic_url']
     file_dir = os.path.join(settings.MEDIA_ROOT, 'shop', username)
@@ -293,7 +293,7 @@ def get_page_preview_data(username, page):
         page = 1
     else:
         if page < 1 or page > (posts_count // pagination_size) + 1:
-            raise CustomException(400, "Paginator value is not valid!")
+            raise CustomException(406, "Paginator value is not valid!")
 
     start_post = (page - 1) * pagination_size
     if page * pagination_size > posts_count:
