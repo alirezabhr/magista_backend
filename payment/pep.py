@@ -94,14 +94,14 @@ class Pep:
             return response
 
     def get_pep_redirect_url(self, amount, invoice_number, invoice_date, mobile='', email=''):
-        # type: (str, str, str, str, str) -> tuple
+        # type: (int, str, str, str, str) -> tuple
         params = {
             'Amount': amount,
             'InvoiceNumber': invoice_number,
             'InvoiceDate': invoice_date,
             'Mobile': mobile,
             'Email': email,
-            'Action': "1003",
+            'Action': 1003,
             'MerchantCode': self._merchant_code,
             'TerminalCode': self._terminal_id,
             'RedirectAddress': self._redirect_url,
@@ -123,7 +123,7 @@ class Pep:
         return response
 
     def verify_payment(self, amount, invoice_number, invoice_date):
-        # type: (str, str, str) -> dict
+        # type: (int, str, str) -> dict
         params = {
             'amount': amount,
             'invoiceNumber': invoice_number,
