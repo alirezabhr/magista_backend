@@ -20,6 +20,10 @@ class Invoice(models.Model):
             total += order.total_price
         return total
 
+    @property
+    def is_paid(self):
+        return PaymentDetail.objects.filter(payment_invoice__invoice=self).exists()
+
 
 class PaymentInvoice(models.Model):
     invoice = models.OneToOneField(Invoice, models.PROTECT)
