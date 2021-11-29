@@ -108,9 +108,9 @@ class PaymentView(APIView):
         except Invoice.DoesNotExist:
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
-        amount_rial = str(invoice.total_amount) + '0'
+        amount_rial = invoice.total_amount * 10     # convert Toman to Rial
         invoice_number = str(invoice.id)
-        invoice_date = str(invoice.created_at)
+        invoice_date = str(invoice.created_at)[:19]     # format: 2021-11-29 12:58:13
 
         pep = Pep()
         try:
@@ -154,7 +154,7 @@ class PaymentView(APIView):
             return Response(rsp, status=status.HTTP_503_SERVICE_UNAVAILABLE)
 
         try:    # verify transaction
-            verify_trx_response = pep.verify_payment(amount, str(invoice_num), invoice_date)
+            verify_trx_response = pep.verify_payment(int(amount), str(invoice_num), invoice_date)
             masked_card_num = verify_trx_response['MaskedCardNumber']
             shaparak_ref_num = verify_trx_response['ShaparakRefNumber']
         except PepError as error:
