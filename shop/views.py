@@ -69,6 +69,10 @@ class ShopMediaQueryView(APIView):
             response["error"] = ['آیدی پیج اینستاگرام الزامی است.']
             return Response(response, status=status.HTTP_400_BAD_REQUEST)
 
+        if Shop.objects.filter(instagram_username=self.instagram_username).exists():
+            response["error"] = [f'مغازه {self.instagram_username} موجود است.']
+            return Response(response, status=status.HTTP_400_BAD_REQUEST)
+
         try:
             data = scrape.scrape_instagram_media(self.instagram_username)
             scrape.write_user_media_query_data(self.instagram_username, data)
