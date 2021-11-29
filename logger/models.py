@@ -5,7 +5,7 @@ from user.models import User
 
 # Create your models here.
 class Issue(models.Model):
-    user = models.OneToOneField(User, on_delete=models.PROTECT, null=True)
+    # user = models.OneToOneField(User, on_delete=models.PROTECT, null=True)
     location = models.CharField(max_length=50)
     key = models.CharField(max_length=25, null=True)
     value = models.CharField(max_length=100, null=True)

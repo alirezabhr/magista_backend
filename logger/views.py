@@ -13,8 +13,6 @@ class IssueView(APIView):
 
     def post(self, request):
         data = request.data
-        for item in data:
-            item['user'] = request.user.pk
 
         ser = self.serializer_class(data=data, many=True)
         ser.is_valid(raise_exception=True)
