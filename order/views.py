@@ -116,7 +116,7 @@ class PaymentView(APIView):
         try:
             token, redirect_url = pep.get_pep_redirect_url(amount_rial, invoice_number, invoice_date)
         except PepError as error:
-            rsp = {'error': error.error_message}
+            rsp = {'error': [error.error_message]}
             return Response(rsp, status=status.HTTP_503_SERVICE_UNAVAILABLE)
 
         data = {
@@ -149,10 +149,8 @@ class PaymentView(APIView):
             invoice_num = check_trx_response['InvoiceNumber']
             invoice_date = check_trx_response['InvoiceDate']
             amount = check_trx_response['Amount']
-            print('invoice num type:')
-            print(type(invoice_num))
         except PepError as error:
-            rsp = {'error': error.error_message}
+            rsp = {'error': [error.error_message]}
             return Response(rsp, status=status.HTTP_503_SERVICE_UNAVAILABLE)
 
         try:    # verify transaction
@@ -160,7 +158,7 @@ class PaymentView(APIView):
             masked_card_num = verify_trx_response['MaskedCardNumber']
             shaparak_ref_num = verify_trx_response['ShaparakRefNumber']
         except PepError as error:
-            rsp = {'error': error.error_message}
+            rsp = {'error': [error.error_message]}
             return Response(rsp, status=status.HTTP_503_SERVICE_UNAVAILABLE)
 
         payment_invoice = PaymentInvoice.objects.get(invoice=int(invoice_num))
