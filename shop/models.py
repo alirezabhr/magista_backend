@@ -1,6 +1,6 @@
 from django.db import models
 
-from user.models import User, Customer
+from user.models import User
 
 
 # Create your models here.
@@ -8,7 +8,7 @@ class Shop(models.Model):
     vendor = models.ForeignKey(User, on_delete=models.CASCADE)
     email = models.EmailField()
     instagram_username = models.CharField(max_length=30, unique=True)
-    instagram_id = models.IntegerField(unique=True)
+    instagram_id = models.BigIntegerField(unique=True)
     province = models.CharField(max_length=30)
     city = models.CharField(max_length=30)
     address = models.TextField()
