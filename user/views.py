@@ -47,7 +47,7 @@ class UserView(APIView):
             response['error'] = ["شماره موبایل و رمز عبور الزامی است."]
             return Response(response, status=status.HTTP_400_BAD_REQUEST)
         except User.DoesNotExist:
-            response['error'] = ["کاربری با این شماره وجود ندارد."]
+            response['error'] = ["کاربری با این شماره موبایل وجود ندارد."]
             return Response(response, status=status.HTTP_404_NOT_FOUND)
 
         user.set_password(raw_password=password)
@@ -163,10 +163,10 @@ def check_otp_view(request):
         valid_time = utils.is_expired_otp(obj.created_at)
 
         if not valid_time:
-            response['otp_code'] = ['کد فعالسازی وارد شده منقضی شده است.']
+            response['error'] = ['کد فعالسازی وارد شده منقضی شده است.']
             return Response(response, status=status.HTTP_406_NOT_ACCEPTABLE)
 
         return Response(status=status.HTTP_200_OK)
     else:
-        response['otp_code'] = ['کد فعالسازی وارد شده اشتباه است.']
+        response['error'] = ['کد فعالسازی وارد شده اشتباه است.']
         return Response(response, status=status.HTTP_400_BAD_REQUEST)
