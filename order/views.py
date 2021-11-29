@@ -161,6 +161,11 @@ class PaymentView(APIView):
             rsp = {'error': [error.error_message]}
             return Response(rsp, status=status.HTTP_503_SERVICE_UNAVAILABLE)
 
+        paid_orders = Order.objects.filter(invoice_id=invoice_num)
+        for order in paid_orders:
+            order.status = Order.Status.PAID
+            order.save()
+
         payment_invoice = PaymentInvoice.objects.get(invoice=int(invoice_num))
         payment_detail = {
             'payment_invoice': payment_invoice.pk,
