@@ -12,6 +12,7 @@ class Shop(models.Model):
     province = models.CharField(max_length=30)
     city = models.CharField(max_length=30)
     address = models.TextField()
+    wallet = models.IntegerField(default=0)  # Toman
     profile_pic = models.CharField(max_length=80, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
