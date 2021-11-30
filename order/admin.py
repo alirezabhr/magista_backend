@@ -1,9 +1,8 @@
 from django.contrib import admin
 
 # Register your models here.
-from .models import PaymentDetail, PaymentInvoice, Order, OrderItem
+from .models import Invoice, Order, OrderItem
 
-admin.site.register(PaymentDetail)
-admin.site.register(PaymentInvoice)
+admin.site.register(Invoice)
 admin.site.register(Order)
 admin.site.register(OrderItem)

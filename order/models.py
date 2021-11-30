@@ -22,28 +22,7 @@ class Invoice(models.Model):
 
     @property
     def is_paid(self):
-        return PaymentDetail.objects.filter(payment_invoice__invoice=self).exists()
-
-
-class PaymentInvoice(models.Model):
-    invoice = models.OneToOneField(Invoice, models.PROTECT)
-    amount = models.IntegerField()
-    token = models.CharField(max_length=50)
-    created_at = models.DateTimeField(auto_now_add=True)
-
-
-class PaymentDetail(models.Model):
-    payment_invoice = models.OneToOneField(PaymentInvoice, models.PROTECT)
-    ref_number = models.BigIntegerField()   # شماره ارجاع
-    trx_ref_id = models.CharField(max_length=40)    # شماره ارجاع داخلی
-    trace_number = models.IntegerField()    # شماره پیگیری
-    shaparak_ref_number = models.CharField(max_length=40)   # شماره ارجاع شاپرک
-    masked_card_number = models.CharField(max_length=20)    # شماره کارت ماسک شده
-    paid_at = models.DateTimeField(auto_now_add=True)
-
-    @property
-    def amount(self):
-        return self.payment_invoice.amount
+        return self.orders.last().status >= Order.Status.PAID
 
 
 class Order(models.Model):
@@ -82,7 +61,7 @@ class Order(models.Model):
 
     @property
     def status_text(self):
-        return self.status_text_list[self.status-1]
+        return self.status_text_list[self.status - 1]
 
     def __str__(self):
         return f"id: {self.pk} | {self.created_at} | status: {self.status}"
