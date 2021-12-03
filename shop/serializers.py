@@ -38,6 +38,19 @@ class ProductSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
+class ProductPreviewSerializer(serializers.ModelSerializer):
+    updated_at = serializers.DateTimeField(format="%Y-%m-%d %H:%M:%S", read_only=True)
+    created_at = serializers.DateTimeField(format="%Y-%m-%d %H:%M:%S", read_only=True)
+    final_price = serializers.ReadOnlyField()
+    discount_percent = serializers.ReadOnlyField()
+    discount_description = serializers.ReadOnlyField()
+    shop = ShopPreviewSerializer()
+
+    class Meta:
+        model = Product
+        fields = '__all__'
+
+
 class ShopProductsPreviewSerializer(serializers.ModelSerializer):
     updated_at = serializers.DateTimeField(format="%Y-%m-%d %H:%M:%S", read_only=True)
     created_at = serializers.DateTimeField(format="%Y-%m-%d %H:%M:%S", read_only=True)

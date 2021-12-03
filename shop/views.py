@@ -6,7 +6,7 @@ from rest_framework.permissions import AllowAny
 
 from .models import Shop, Product
 from .serializers import ShopSerializer, ProductSerializer, ShopPreviewSerializer, ShopProductsPreviewSerializer, \
-    DiscountSerializer
+    DiscountSerializer, ProductPreviewSerializer
 
 from scraping import scrape
 from utils import utils
@@ -297,6 +297,15 @@ class ProductView(APIView):
         ser = self.serializer_class(product, data=request.data)
         ser.is_valid(raise_exception=True)
         ser.save()
+        return Response(ser.data, status=status.HTTP_200_OK)
+
+
+class ProductPreviewView(APIView):
+    serializer_class = ProductPreviewSerializer
+
+    def get(self, request, product_shortcode):
+        product = get_object_or_404(Product, shortcode=product_shortcode)
+        ser = self.serializer_class(product)
         return Response(ser.data, status=status.HTTP_200_OK)
 
 
