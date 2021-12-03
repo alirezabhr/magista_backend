@@ -35,8 +35,8 @@ class User(AbstractUser):
     USERNAME_FIELD = 'phone'
 
     @property
-    def customer_id(self):
-        return Customer.objects.get(user=self).pk
+    def customer(self):
+        return Customer.objects.get(user=self)
 
     def __str__(self):
         return f'{self.id}: {self.username}'

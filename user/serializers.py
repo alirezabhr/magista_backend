@@ -3,12 +3,19 @@ from rest_framework import serializers
 from .models import User, Customer, Otp
 
 
+class CustomerSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Customer
+        fields = '__all__'
+
+
 class UserSerializer(serializers.ModelSerializer):
     password = serializers.CharField(
         max_length=128,
         min_length=8,
         write_only=True
     )
+    customer = CustomerSerializer()
 
     class Meta:
         model = User
@@ -16,17 +23,11 @@ class UserSerializer(serializers.ModelSerializer):
             "id",
             "phone",
             "password",
-            "customer_id",
+            "customer",
         ]
 
     def create(self, validated_data):
         return User.objects.create_user(**validated_data)
-
-
-class CustomerSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Customer
-        fields = '__all__'
 
 
 class OtpSerializer(serializers.ModelSerializer):
