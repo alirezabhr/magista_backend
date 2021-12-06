@@ -90,3 +90,23 @@ class InvoiceView(APIView):
         invoice = get_object_or_404(Invoice, pk=invoice_pk)
         ser = self.serializer_class(invoice)
         return Response(ser.data, status=status.HTTP_200_OK)
+
+
+class OrderView(APIView):
+    serializer_class = OrderSerializer
+
+    def put(self, request, order_pk):   # change status of order
+        order = get_object_or_404(Order, pk=order_pk)
+        try:
+            new_status = request.data['status']
+            payload = {
+                'invoice': order.invoice.id,
+                'shop': order.shop.id,
+                'status': new_status,
+            }
+        except KeyError:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+        ser = self.serializer_class(order, data=payload)
+        ser.is_valid(raise_exception=True)
+        ser.save()
+        return Response(ser.data, status=status.HTTP_200_OK)
