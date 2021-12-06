@@ -26,14 +26,15 @@ class Invoice(models.Model):
 
 
 class Order(models.Model):
-    status_text_list = ['در انتظار پرداخت', 'پرداخت شده', 'ارسال شده', 'دریافت شده', 'لغو شده']
+    status_text_list = ['در انتظار پرداخت', 'پرداخت شده', 'تایید شده', 'ارسال شده', 'دریافت شده', 'لغو شده']
 
     class Status(models.IntegerChoices):
         AWAITING_PAYMENT = 1
         PAID = 2
-        SHIPPED = 3
-        RECEIVED = 4
-        CANCELED = 5
+        VERIFIED = 3
+        SHIPPED = 4
+        RECEIVED = 5
+        CANCELED = 6
 
     invoice = models.ForeignKey(Invoice, models.PROTECT)
     shop = models.ForeignKey(Shop, models.PROTECT)
