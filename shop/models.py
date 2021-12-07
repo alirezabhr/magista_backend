@@ -1,5 +1,8 @@
+from django.utils import timezone
+
 from django.db import models
 
+from order.models import Order
 from user.models import User
 
 
@@ -15,6 +18,32 @@ class Shop(models.Model):
     wallet = models.IntegerField(default=0)  # Toman
     profile_pic = models.CharField(max_length=80, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
+
+    @property
+    def rate(self):
+        rate_sum = 0
+        count = 0
+        for product in Product.objects.filter(shop=self):
+            if product.rate:
+                count += 1
+                rate_sum += product.rate
+        return rate_sum
+
+    @property
+    def withdrawal_amount(self):
+        return self.wallet - self.before_n_days_orders_price(2)     # orders before last 2 days
+
+    def before_n_days_orders_price(self, n_days):
+        """ returns paid orders of this shop which created in last n days """
+        now = timezone.now()
+        delta = timezone.timedelta(days=n_days)
+        date_time_range = (self.created_at, now-delta)
+        order_status_range = (Order.Status.SHIPPED, Order.Status.RECEIVED)
+        order_query = Order.objects.filter(shop=self, status__range=order_status_range, invoice__created_at__range=date_time_range)
+        amount = 0
+        for order in order_query:
+            amount += order.total_price
+        return amount
 
     def __str__(self):
         return f'{self.id}: {self.vendor.username} | {self.instagram_username}'

@@ -4,6 +4,8 @@ from .models import Shop, Product, Discount
 
 
 class ShopSerializer(serializers.ModelSerializer):
+    rate = serializers.ReadOnlyField()
+    withdrawal_amount = serializers.ReadOnlyField()
     created_at = serializers.DateTimeField(format="%Y-%m-%d %H:%M:%S", read_only=True)
 
     class Meta:
@@ -12,6 +14,7 @@ class ShopSerializer(serializers.ModelSerializer):
 
 
 class ShopPreviewSerializer(serializers.ModelSerializer):
+    rate = serializers.ReadOnlyField()
     created_at = serializers.DateTimeField(format="%Y-%m-%d %H:%M:%S", read_only=True)
 
     class Meta:
@@ -21,6 +24,7 @@ class ShopPreviewSerializer(serializers.ModelSerializer):
             'province',
             'city',
             'profile_pic',
+            'rate',
             'created_at',
         ]
         model = Shop
