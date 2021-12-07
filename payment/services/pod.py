@@ -18,9 +18,9 @@ class BankError(Exception):
 
 class Pod:
     API_URL = 'https://api.pod.ir/srv/sc/nzh/doServiceCall'
-    PAYA_PRODUCT_ID = 1076566    # شناسه سرویس انتقال پایا
-    __PAYA_API_KEY = '5f689f253a6c4ecbbb6f4f5ab9efcfae'    # کلید وب‌سرویس انتقال پایا
-    __BUSINESS_TOKEN = '2560c5533dc74b8ea007b33509a811a9'     # توکن کسب و کار
+    PAYA_PRODUCT_ID = 1076566  # شناسه سرویس انتقال پایا
+    __PAYA_API_KEY = '5f689f253a6c4ecbbb6f4f5ab9efcfae'  # کلید وب‌سرویس انتقال پایا
+    __BUSINESS_TOKEN = '2560c5533dc74b8ea007b33509a811a9'  # توکن کسب و کار
 
     def __init__(self):
         self.__username = 'service14965060'
@@ -53,10 +53,10 @@ class Pod:
             return response
 
     def withdraw(self, amount, dest_sheba, dest_full_name, description):
-        # type: (int, str, str, str) -> None
+        # type: (int, str, str, str) -> dict
 
         time_stamp_millisecond = self._gen_time_stamp()
-        transaction_date = time_stamp_millisecond[:10]      # e.g. '2021/12/07'
+        transaction_date = time_stamp_millisecond[:10]  # e.g. '2021/12/07'
 
         data = {
             "Amount": amount,
@@ -73,9 +73,11 @@ class Pod:
         }
 
         response = self._request_builder(self.PAYA_PRODUCT_ID, self.__PAYA_API_KEY, data)
+        pod_ref_num = response['referenceNumber']
         result = json.loads(response['result']['result'])
         if result['IsSuccess'] and result['RsCode'] == 1:
-            return result
+            return_value = {'pod_ref_num': pod_ref_num, 'result': result}
+            return return_value
         else:
             raise BankError(result)
 
