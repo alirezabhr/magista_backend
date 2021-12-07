@@ -49,6 +49,12 @@ class Shop(models.Model):
         return f'{self.id}: {self.vendor.username} | {self.instagram_username}'
 
 
+class BankCredit(models.Model):
+    shop = models.ForeignKey(Shop, models.CASCADE)
+    sheba = models.CharField(max_length=30)
+    full_name = models.CharField(max_length=60)
+
+
 class Product(models.Model):
     shop = models.ForeignKey(Shop, models.PROTECT)
     shortcode = models.CharField(max_length=15)     # this shortcode can create by backend
