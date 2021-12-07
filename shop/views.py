@@ -1,12 +1,12 @@
-from rest_framework.generics import get_object_or_404
+from rest_framework.generics import get_object_or_404, ListCreateAPIView
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status, permissions
 from rest_framework.permissions import AllowAny
 
-from .models import Shop, Product
+from .models import Shop, Product, BankCredit
 from .serializers import ShopSerializer, ProductSerializer, ShopPreviewSerializer, ShopProductsPreviewSerializer, \
-    DiscountSerializer, ProductPreviewSerializer
+    DiscountSerializer, ProductPreviewSerializer, BankCreditSerializer
 
 from scraping import scrape
 from utils import utils
@@ -231,6 +231,15 @@ class ShopProductsView(APIView):
         products = Product.objects.filter(shop_id=shop.id)
         ser = self.serializer_class(products, many=True)
         return Response(ser.data, status=status.HTTP_200_OK)
+
+
+class ShopBankCreditsView(ListCreateAPIView):
+    serializer_class = BankCreditSerializer
+    queryset = BankCredit.objects.all()
+
+    def get_queryset(self):
+        shop_pk = self.kwargs.get('shop_pk')
+        return self.queryset.filter(shop_id=shop_pk)
 
 
 class ShopProductsPreviewView(APIView):
