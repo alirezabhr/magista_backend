@@ -1,6 +1,5 @@
 from django.db import models
 
-from shop.models import Shop, Product
 from user.models import Customer
 
 
@@ -37,7 +36,7 @@ class Order(models.Model):
         CANCELED = 6
 
     invoice = models.ForeignKey(Invoice, models.PROTECT)
-    shop = models.ForeignKey(Shop, models.PROTECT)
+    shop = models.ForeignKey('shop.Shop', models.PROTECT)
     status = models.IntegerField(choices=Status.choices)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -70,7 +69,7 @@ class Order(models.Model):
 
 class OrderItem(models.Model):
     order = models.ForeignKey(Order, models.PROTECT)
-    product = models.ForeignKey(Product, models.PROTECT)
+    product = models.ForeignKey('shop.Product', models.PROTECT)
     price = models.PositiveIntegerField()
     count = models.PositiveSmallIntegerField()
 
