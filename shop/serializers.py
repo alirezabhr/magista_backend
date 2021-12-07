@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from .models import Shop, Product, Discount
+from .models import Shop, Product, Discount, BankCredit
 
 
 class ShopSerializer(serializers.ModelSerializer):
@@ -10,6 +10,12 @@ class ShopSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Shop
+        fields = '__all__'
+
+
+class BankCreditSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = BankCredit
         fields = '__all__'
 
 
