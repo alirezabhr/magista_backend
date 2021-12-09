@@ -19,9 +19,11 @@ class BankError(Exception):
 
 class Pod:
     API_URL = 'https://api.pod.ir/srv/sc/nzh/doServiceCall'
+    __BUSINESS_TOKEN = '2560c5533dc74b8ea007b33509a811a9'  # توکن کسب و کار
     PAYA_PRODUCT_ID = 1076566  # شناسه سرویس انتقال پایا
     __PAYA_API_KEY = 'fc5791e0a31e44d4a40cf9d49439513e'  # کلید وب‌سرویس انتقال پایا
-    __BUSINESS_TOKEN = '2560c5533dc74b8ea007b33509a811a9'  # توکن کسب و کار
+    DEPOSIT_TRANSACTIONS_PRODUCT_ID = 1077467  # شناسه سرویس صورتحساب سپرده
+    __DEPOSIT_TRANSACTIONS_API_KEY = '570ffaf3e320456491d25bd60b09a6cd'  # کلید وب‌سرویس صورتحساب سپرده
 
     def __init__(self):
         self.__username = 'service14965060'
@@ -45,7 +47,7 @@ class Pod:
         payload = {
             'scProductId': sc_product_id,
             'scApiKey': sc_api_key,
-            'body': json.dumps(data),
+            'request': json.dumps(data),
         }
 
         response = requests.post(self.API_URL, headers=headers, data=payload)
@@ -55,6 +57,19 @@ class Pod:
             raise PodError(response)
         else:
             return response
+
+    def _create_transaction_id(self):
+        org_code = '4321'
+        ascii_sum = 0
+        random_choices = string.ascii_lowercase + string.ascii_uppercase + string.digits
+        random_str = ''.join(random.choices(random_choices, k=20))
+        date_time = self._gen_time_stamp()
+        data = org_code + random_str + date_time
+
+        for char in data:
+            ascii_sum += ord(char)
+
+        return f"{org_code}-{random_str}-{date_time}-{ascii_sum}"
 
     def withdraw(self, amount, dest_sheba, dest_full_name, description):
         # type: (int, str, str, str) -> dict
@@ -82,15 +97,53 @@ class Pod:
         else:
             raise BankError(result)
 
-    def _create_transaction_id(self):
-        org_code = '4321'
-        ascii_sum = 0
-        random_choices = string.ascii_lowercase + string.ascii_uppercase + string.digits
-        random_str = ''.join(random.choices(random_choices, k=20))
-        date_time = self._gen_time_stamp()
-        data = org_code + random_str + date_time
+    def deposit_transactions(self, from_date, to_date, from_time, to_time):
+        # type: (str, str, str, str) -> dict
 
-        for char in data:
-            ascii_sum += ord(char)
+        data = {
+            "DepositNumber": self.__src_deposit_num,
+            "FromDate": from_date,
+            "ToDate": to_date,
+            "ResultCount": 15,
+            "FromTime": from_time,
+            "ToTime": to_time,
+        }
 
-        return f"{org_code}-{random_str}-{date_time}-{ascii_sum}"
+        response = self._request_builder(self.DEPOSIT_TRANSACTIONS_PRODUCT_ID, self.__DEPOSIT_TRANSACTIONS_API_KEY, data)
+        pod_ref_num = response['referenceNumber']
+        result = json.loads(response['result']['result'])
+        if result['IsSuccess'] and result['RsCode'] == 1:
+            return_value = {'pod_ref_num': pod_ref_num, 'result': result}
+            return return_value
+        else:
+            raise BankError(result)
+
+    def check_transaction(self, dest_sheba):
+        # type: (str) -> tuple
+
+        delta = jdatetime.timedelta(minutes=10, days=2)
+        now_date_time = jdatetime.datetime.now().date()
+        from_date_time = now_date_time - delta
+        to_date_time = now_date_time + delta
+
+        from_date = from_date_time.strftime('%Y/%m/%d')
+        to_date = to_date_time.strftime('%Y/%m/%d')
+        from_time = from_date_time.strftime('%H:%M:%S')
+        to_time = to_date_time.strftime('%H:%M:%S')
+
+        transactions_response = self.deposit_transactions(from_date, to_date, from_time, to_time)
+
+        trx_list = transactions_response['result']['ResultData'][0]['Statements']
+
+        found = False
+        found_trx = {}
+        for trx in trx_list:
+            description = trx['Description']
+            start_index = description.find("IR")
+            end_index = description.find(" ", start_index)
+            if dest_sheba == description[start_index:end_index]:
+                found_trx = trx
+                found = True
+                break
+
+        return found, found_trx
