@@ -4,10 +4,12 @@ from rest_framework.response import Response
 
 from order.models import Invoice, Order
 from order.serializers import InvoiceSerializer
-from payment.models import PaymentInvoice
-from payment.serializers import PaymentInvoiceSerializer, PaymentResultSerializer, PaymentDetailSerializer
+from payment.models import PaymentInvoice, Withdraw
+from payment.serializers import PaymentInvoiceSerializer, PaymentResultSerializer, PaymentDetailSerializer, \
+    WithdrawSerializer, WithdrawRequestSerializer, WithdrawPublicSerializer
 
 from .services.pep import Pep, PepError
+from .services.pod import Pod, PodError, BankError
 
 
 # Create your views here.
@@ -25,9 +27,9 @@ class PaymentView(APIView):
         except Invoice.DoesNotExist:
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
-        amount_rial = invoice.total_amount * 10     # convert Toman to Rial
+        amount_rial = invoice.total_amount * 10  # convert Toman to Rial
         invoice_number = str(invoice.id)
-        invoice_date = str(invoice.created_at)[:19]     # format: 2021-11-29 12:58:13
+        invoice_date = str(invoice.created_at)[:19]  # format: 2021-11-29 12:58:13
 
         pep = Pep()
         try:
@@ -58,8 +60,9 @@ class PaymentView(APIView):
         ser.is_valid(raise_exception=True)
 
         pep = Pep()
-        try:    # check transaction status
-            check_trx_response = pep.check_transaction(data['trx_reference_id'], data['invoice_number'], data['invoice_date'])
+        try:  # check transaction status
+            check_trx_response = pep.check_transaction(data['trx_reference_id'], data['invoice_number'],
+                                                       data['invoice_date'])
             reference_num = check_trx_response['ReferenceNumber']
             trace_num = check_trx_response['TraceNumber']
             trx_ref_id = check_trx_response['TransactionReferenceID']
@@ -70,7 +73,7 @@ class PaymentView(APIView):
             rsp = {'error': [error.error_message]}
             return Response(rsp, status=status.HTTP_503_SERVICE_UNAVAILABLE)
 
-        try:    # verify transaction
+        try:  # verify transaction
             verify_trx_response = pep.verify_payment(int(amount), str(invoice_num), invoice_date)
             masked_card_num = verify_trx_response['MaskedCardNumber']
             shaparak_ref_num = verify_trx_response['ShaparakRefNumber']
@@ -98,3 +101,53 @@ class PaymentView(APIView):
 
         return Response(ser.data, status=status.HTTP_202_ACCEPTED)
 
+
+class WithdrawView(APIView):
+    serializer_class = WithdrawSerializer
+    request_serializer_class = WithdrawRequestSerializer
+    public_serializer_class = WithdrawPublicSerializer
+
+    def post(self, request):
+        data = request.data
+
+        ser = self.request_serializer_class(data=data)
+        ser.is_valid(raise_exception=True)
+
+        shop_pk = data['shop']
+        amount = int(data['amount']) * 10   # Convert To Rial
+        sheba = data['sheba']
+        full_name = data['full_name']
+        description = f'تسویه با {full_name}'
+
+        try:
+            pod = Pod()
+            withdraw_response = pod.withdraw(amount, sheba, full_name, description)
+        except PodError as error:
+            rsp = {'error': error.error, 'type': 'pod_error'}
+            return Response(rsp, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+        except BankError as error:
+            rsp = {'error': error.error_dict, 'type': 'bank_error'}
+            return Response(rsp, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+        except Exception as error:
+            rsp = {'error': error, 'type': 'system_error'}
+            return Response(rsp, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+
+        withdraw_data = {
+            "shop": shop_pk,
+            "pod_ref_num": withdraw_response['pod_ref_num'],
+            "transaction_id": withdraw_response['result']['TransactionId'],
+            "transaction_date": withdraw_response['result']['TransactionDate'],
+            "amount": withdraw_response['result']['Amount'],
+            "receiver_full_name": withdraw_response['result']['RecieverFullNam'],
+            "destination_sheba": withdraw_response['result']['DestinationIban'],
+            "end_to_end_id": withdraw_response['result']['EndToEndId'],
+            "transaction_code": withdraw_response['result']['TransactionCode'],
+        }
+        withdraw_ser = self.serializer_class(data=withdraw_data)
+        withdraw_ser.is_valid(raise_exception=True)
+        withdraw_ser.save()
+
+        withdraw = Withdraw.objects.get(transaction_code=withdraw_response['result']['TransactionCode'])
+        ser = self.public_serializer_class(withdraw)
+
+        return Response(ser.data, status=status.HTTP_201_CREATED)
