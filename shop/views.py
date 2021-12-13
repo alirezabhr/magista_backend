@@ -311,6 +311,7 @@ class ProductView(APIView):
 
 class ProductPublicView(APIView):
     serializer_class = ProductPublicSerializer
+    permission_classes = [AllowAny]
 
     def get(self, request, product_shortcode):
         product = get_object_or_404(Product, shortcode=product_shortcode)
