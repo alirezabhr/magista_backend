@@ -1,12 +1,12 @@
-from rest_framework.generics import get_object_or_404, ListCreateAPIView
+from rest_framework.generics import get_object_or_404, ListCreateAPIView, DestroyAPIView
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status, permissions
 from rest_framework.permissions import AllowAny
 
-from .models import Shop, Product, BankCredit
-from .serializers import ShopSerializer, ProductSerializer, ShopPreviewSerializer, ShopProductsPreviewSerializer, \
-    DiscountSerializer, ProductPreviewSerializer, BankCreditSerializer
+from .models import Shop, Product, BankCredit, ProductAttribute
+from .serializers import ShopSerializer, ProductSerializer, ShopPublicSerializer, ShopProductsPreviewSerializer, \
+    DiscountSerializer, ProductPublicSerializer, BankCreditSerializer, ProductAttributeSerializer
 
 from scraping import scrape
 from utils import utils
@@ -277,10 +277,10 @@ class ShopProductsPreviewView(APIView):
         return Response(status=status.HTTP_200_OK)
 
 
-class ShopPreviewView(APIView):
+class ShopPublicView(APIView):
     permission_classes = [AllowAny]
     query_set = Shop.objects.all()
-    serializer_class = ShopPreviewSerializer
+    serializer_class = ShopPublicSerializer
 
     def get(self, request, ig_username):
         try:
@@ -309,8 +309,8 @@ class ProductView(APIView):
         return Response(ser.data, status=status.HTTP_200_OK)
 
 
-class ProductPreviewView(APIView):
-    serializer_class = ProductPreviewSerializer
+class ProductPublicView(APIView):
+    serializer_class = ProductPublicSerializer
 
     def get(self, request, product_shortcode):
         product = get_object_or_404(Product, shortcode=product_shortcode)
@@ -336,3 +336,26 @@ class ProductDiscountView(APIView):
         response['product'] = product_ser.data
 
         return Response(response, status=status.HTTP_201_CREATED)
+
+
+class ProductAttributeCreateView(APIView):
+    serializer_class = ProductAttributeSerializer
+
+    def post(self, request, *args, **kwargs):
+        product_shortcode = kwargs.get('product_shortcode')
+        product = get_object_or_404(Product, shortcode=product_shortcode)
+        data = request.data
+        data['product'] = product.id
+        ser = self.serializer_class(data=data)
+        ser.is_valid(raise_exception=True)
+        ser.save()
+        return Response(ser.data, status=status.HTTP_201_CREATED)
+
+
+class ProductAttributeDeleteView(DestroyAPIView):
+    serializer_class = ProductAttributeSerializer
+
+    def get_queryset(self):
+        product_shortcode = self.kwargs.get('product_shortcode')
+        attribute_id = self.kwargs.get('pk')
+        return ProductAttribute.objects.filter(product__shortcode=product_shortcode, pk=attribute_id)
