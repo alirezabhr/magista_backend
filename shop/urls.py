@@ -8,8 +8,10 @@ urlpatterns = [
     path('<int:shop_pk>/products/', views.ShopProductsView.as_view()),    # for vendor
     path('<int:shop_pk>/bank-credit/', views.ShopBankCreditsView.as_view()),    # for vendor
     path('<str:ig_username>/products/', views.ShopProductsPreviewView.as_view()),    # for customer
-    path('<str:ig_username>/preview/', views.ShopPreviewView.as_view(), name='shop-preview'),    # for customer
+    path('<str:ig_username>/preview/', views.ShopPublicView.as_view(), name='shop-preview'),    # for customer
     path('product/<str:product_shortcode>/', views.ProductView.as_view()),    # for vendor
-    path('product/<str:product_shortcode>/preview/', views.ProductPreviewView.as_view()),    # for customer
-    path('product/<str:product_shortcode>/discount/', views.ProductDiscountView.as_view()),
+    path('product/<str:product_shortcode>/preview/', views.ProductPublicView.as_view()),    # for customer
+    path('product/<str:product_shortcode>/discount/', views.ProductDiscountView.as_view()),     # for vendor
+    path('product/<str:product_shortcode>/attribute/', views.ProductAttributeCreateView.as_view()),     # for vendor
+    path('product/<str:product_shortcode>/attribute/<int:pk>/', views.ProductAttributeDeleteView.as_view()),     # for vendor
 ]
