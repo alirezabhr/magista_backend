@@ -69,6 +69,10 @@ class Product(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     @property
+    def attributes(self):
+        return ProductAttribute.objects.filter(product=self)
+
+    @property
     def discount_percent(self):
         discount = Discount.objects.filter(product=self, is_active=True).last()
         if discount is None:

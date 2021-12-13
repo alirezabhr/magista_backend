@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from .models import Shop, Product, Discount, BankCredit
+from .models import Shop, Product, Discount, BankCredit, ProductAttribute
 
 
 class ShopSerializer(serializers.ModelSerializer):
@@ -19,7 +19,7 @@ class BankCreditSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
-class ShopPreviewSerializer(serializers.ModelSerializer):
+class ShopPublicSerializer(serializers.ModelSerializer):
     rate = serializers.ReadOnlyField()
     created_at = serializers.DateTimeField(format="%Y-%m-%d %H:%M:%S", read_only=True)
 
@@ -36,9 +36,16 @@ class ShopPreviewSerializer(serializers.ModelSerializer):
         model = Shop
 
 
+class ProductAttributeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ProductAttribute
+        fields = '__all__'
+
+
 class ProductSerializer(serializers.ModelSerializer):
     updated_at = serializers.DateTimeField(format="%Y-%m-%d %H:%M:%S", read_only=True)
     created_at = serializers.DateTimeField(format="%Y-%m-%d %H:%M:%S", read_only=True)
+    attributes = ProductAttributeSerializer(read_only=True, many=True)
     final_price = serializers.ReadOnlyField()
     discount_percent = serializers.ReadOnlyField()
     discount_description = serializers.ReadOnlyField()
@@ -48,13 +55,14 @@ class ProductSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
-class ProductPreviewSerializer(serializers.ModelSerializer):
+class ProductPublicSerializer(serializers.ModelSerializer):
     updated_at = serializers.DateTimeField(format="%Y-%m-%d %H:%M:%S", read_only=True)
     created_at = serializers.DateTimeField(format="%Y-%m-%d %H:%M:%S", read_only=True)
+    attributes = ProductAttributeSerializer(read_only=True, many=True)
     final_price = serializers.ReadOnlyField()
     discount_percent = serializers.ReadOnlyField()
     discount_description = serializers.ReadOnlyField()
-    shop = ShopPreviewSerializer()
+    shop = ShopPublicSerializer()
 
     class Meta:
         model = Product
@@ -64,7 +72,8 @@ class ProductPreviewSerializer(serializers.ModelSerializer):
 class ShopProductsPreviewSerializer(serializers.ModelSerializer):
     updated_at = serializers.DateTimeField(format="%Y-%m-%d %H:%M:%S", read_only=True)
     created_at = serializers.DateTimeField(format="%Y-%m-%d %H:%M:%S", read_only=True)
-    shop = ShopPreviewSerializer()
+    attributes = ProductAttributeSerializer(read_only=True, many=True)
+    shop = ShopPublicSerializer()
 
     class Meta:
         model = Product
@@ -77,6 +86,7 @@ class ShopProductsPreviewSerializer(serializers.ModelSerializer):
             'rate',
             'original_price',
             'discount_percent',
+            'attributes',
             'discount_description',
             'final_price',
             'is_existing',
