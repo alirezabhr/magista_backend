@@ -2,7 +2,7 @@ from django.utils import timezone
 
 from django.db import models
 
-from order.models import Order
+from order.models import Order, OrderItem
 from user.models import User
 
 
@@ -23,7 +23,7 @@ class Shop(models.Model):
     def rate(self):
         rate_sum = 0
         count = 0
-        for product in Product.objects.filter(shop=self):
+        for product in Product.objects.filter(image__post__shop=self):
             if product.rate:
                 count += 1
                 rate_sum += product.rate
@@ -55,14 +55,35 @@ class BankCredit(models.Model):
     full_name = models.CharField(max_length=60)
 
 
-class Product(models.Model):
+class Post(models.Model):
     shop = models.ForeignKey(Shop, models.PROTECT)
     shortcode = models.CharField(max_length=15)     # this shortcode can create by backend
-    display_image = models.CharField(max_length=120, null=True)
-    title = models.CharField(max_length=100, blank=True)
     description = models.TextField(blank=True)
     instagram_link = models.CharField(max_length=70, blank=True)    # instagram shortcode
-    rate = models.PositiveSmallIntegerField(null=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    @property
+    def product_images(self):
+        return ProductImage.objects.filter(post=self)
+
+    def __str__(self):
+        return f"{self.pk}: {self.shop} - {self.shortcode}"
+
+
+class ProductImage(models.Model):
+    post = models.ForeignKey(Post, models.PROTECT)
+    display_image = models.CharField(max_length=120, null=True)
+
+    @property
+    def products(self):
+        return Product.objects.filter(image=self)
+
+
+class Product(models.Model):
+    image = models.ForeignKey(ProductImage, models.PROTECT)
+    title = models.CharField(max_length=40, blank=True)
+    description = models.CharField(max_length=60, blank=True)
     original_price = models.PositiveIntegerField(null=True, default=None)
     is_existing = models.BooleanField(default=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -71,6 +92,18 @@ class Product(models.Model):
     @property
     def attributes(self):
         return ProductAttribute.objects.filter(product=self)
+
+    @property
+    def rate(self):
+        sum_ = 0
+        index = -1
+
+        for index, oi in enumerate(OrderItem.objects.filter(product=self)):
+            sum_ += oi.order.rate
+
+        if index == -1:
+            return None
+        return sum_ / (index + 1)
 
     @property
     def discount_percent(self):
@@ -100,7 +133,7 @@ class Product(models.Model):
         return None
 
     def __str__(self):
-        return f"{self.pk}: {self.shop} - {self.title}"
+        return f"{self.pk}: {self.image.post.shop.instagram_username} - {self.title}"
 
 
 class ProductAttribute(models.Model):
