@@ -254,27 +254,27 @@ class ShopProductsPreviewView(APIView):
         ser = self.serializer_class(products_list, many=True)
         return Response(ser.data, status=status.HTTP_200_OK)
 
-    def post(self, request, *args, **kwargs):
-        products_list = Product.objects.filter(shop__instagram_username=kwargs['ig_username'],
-                                               original_price__isnull=False)
-        if len(products_list):
-            product = products_list[0]
-        else:
-            return Response(status=status.HTTP_400_BAD_REQUEST)
-
-        product_data = {
-            "shortcode": product.shortcode,
-            "display_image": product.display_image,
-            "title": 'جدید',
-            "description": product.description,
-            "instagram_link": product.instagram_link
-        }
-
-        serializer = self.serializer_class(product, data=product_data)
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-
-        return Response(status=status.HTTP_200_OK)
+    # def post(self, request, *args, **kwargs):
+    #     products_list = Product.objects.filter(shop__instagram_username=kwargs['ig_username'],
+    #                                            original_price__isnull=False)
+    #     if len(products_list):
+    #         product = products_list[0]
+    #     else:
+    #         return Response(status=status.HTTP_400_BAD_REQUEST)
+    #
+    #     product_data = {
+    #         "shortcode": product.shortcode,
+    #         "display_image": product.display_image,
+    #         "title": 'جدید',
+    #         "description": product.description,
+    #         "instagram_link": product.instagram_link
+    #     }
+    #
+    #     serializer = self.serializer_class(product, data=product_data)
+    #     serializer.is_valid(raise_exception=True)
+    #     serializer.save()
+    #
+    #     return Response(status=status.HTTP_200_OK)
 
 
 class ShopPublicView(APIView):
