@@ -39,6 +39,7 @@ class Order(models.Model):
     shop = models.ForeignKey('shop.Shop', models.PROTECT)
     status = models.IntegerField(choices=Status.choices)
     updated_at = models.DateTimeField(auto_now=True)
+    rate = models.SmallIntegerField(null=True)
 
     @property
     def created_at(self):
