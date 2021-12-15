@@ -1,5 +1,5 @@
 from rest_framework.generics import get_object_or_404, ListCreateAPIView, DestroyAPIView, RetrieveAPIView, \
-    RetrieveUpdateAPIView
+    RetrieveUpdateAPIView, CreateAPIView
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status, permissions
@@ -8,7 +8,7 @@ from rest_framework.permissions import AllowAny
 from .models import Shop, Product, BankCredit, ProductAttribute, Post, Discount
 from .serializers import ShopSerializer, ProductSerializer, ShopPublicSerializer, DiscountSerializer, \
     BankCreditSerializer, ProductAttributeSerializer, PostSerializer, \
-    ProductImageSerializer, PostReadonlySerializer
+    ProductImageSerializer, PostReadonlySerializer, TagLocationSerializer
 
 from scraping import scrape
 from utils import utils
@@ -245,6 +245,10 @@ class ShopPostView(APIView):
         return Response(ser.data, status=status.HTTP_200_OK)
 
 
+class ShopProductView(CreateAPIView):
+    serializer_class = ProductSerializer
+
+
 class ShopBankCreditsView(ListCreateAPIView):
     serializer_class = BankCreditSerializer
     queryset = BankCredit.objects.all()
@@ -343,3 +347,7 @@ class ProductAttributeDeleteView(DestroyAPIView):
         product_pk = self.kwargs.get('product_pk')
         attribute_id = self.kwargs.get('pk')
         return ProductAttribute.objects.filter(product_id=product_pk, pk=attribute_id)
+
+
+class ProductTagCreateView(CreateAPIView):
+    serializer_class = TagLocationSerializer
