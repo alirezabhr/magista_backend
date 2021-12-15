@@ -36,6 +36,12 @@ class ShopPublicSerializer(serializers.ModelSerializer):
         model = Shop
 
 
+class TagLocationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = TagLocation
+        fields = '__all__'
+
+
 class ProductAttributeSerializer(serializers.ModelSerializer):
     class Meta:
         model = ProductAttribute
@@ -50,6 +56,7 @@ class ProductSerializer(serializers.ModelSerializer):
     final_price = serializers.ReadOnlyField()
     discount_percent = serializers.ReadOnlyField()
     discount_description = serializers.ReadOnlyField()
+    tag = TagLocationSerializer(read_only=True)
 
     class Meta:
         model = Product
@@ -61,6 +68,7 @@ class ShopProductsPreviewSerializer(serializers.ModelSerializer):
     created_at = serializers.DateTimeField(format="%Y-%m-%d %H:%M:%S", read_only=True)
     attributes = ProductAttributeSerializer(read_only=True, many=True)
     rate = serializers.ReadOnlyField()
+    tag = TagLocationSerializer(read_only=True)
     # shop = ShopPublicSerializer()
 
     class Meta:

@@ -64,11 +64,15 @@ class Post(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     @property
+    def has_product(self):
+        return Product.objects.filter(image__post=self).exists()
+
+    @property
     def product_images(self):
         return ProductImage.objects.filter(post=self)
 
     def __str__(self):
-        return f"{self.pk}: {self.shop} - {self.shortcode}"
+        return f"{self.pk}: {self.shop.instagram_username} | {self.shortcode}"
 
 
 class ProductImage(models.Model):
@@ -108,21 +112,21 @@ class Product(models.Model):
     @property
     def discount_percent(self):
         discount = Discount.objects.filter(product=self, is_active=True).last()
-        if discount is None:
+        if discount is None or discount.is_active is False:
             return 0
         return discount.percent
 
     @property
     def discount_amount(self):
-        discount = Discount.objects.filter(product=self, is_active=True).last()
-        if discount is None:
+        discount = Discount.objects.filter(product=self).last()
+        if discount is None or discount.is_active is False:
             return 0
         return discount.amount
 
     @property
     def discount_description(self):
-        discount = Discount.objects.filter(product=self, is_active=True).last()
-        if discount is None:
+        discount = Discount.objects.filter(product=self).last()
+        if discount is None or discount.is_active is False:
             return ''
         return discount.description
 
@@ -132,8 +136,18 @@ class Product(models.Model):
             return self.original_price - self.discount_amount
         return None
 
+    @property
+    def tag(self):
+        return TagLocation.objects.get(product=self)
+
     def __str__(self):
         return f"{self.pk}: {self.image.post.shop.instagram_username} - {self.title}"
+
+
+class TagLocation(models.Model):
+    product = models.OneToOneField(Product, models.CASCADE)
+    x = models.SmallIntegerField()
+    y = models.SmallIntegerField()
 
 
 class ProductAttribute(models.Model):
