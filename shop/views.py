@@ -1,12 +1,14 @@
-from rest_framework.generics import get_object_or_404, ListCreateAPIView, DestroyAPIView
+from rest_framework.generics import get_object_or_404, ListCreateAPIView, DestroyAPIView, RetrieveAPIView, \
+    RetrieveUpdateAPIView
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status, permissions
 from rest_framework.permissions import AllowAny
 
-from .models import Shop, Product, BankCredit, ProductAttribute
-from .serializers import ShopSerializer, ProductSerializer, ShopPublicSerializer, ShopProductsPreviewSerializer, \
-    DiscountSerializer, ProductPublicSerializer, BankCreditSerializer, ProductAttributeSerializer
+from .models import Shop, Product, BankCredit, ProductAttribute, Post, Discount
+from .serializers import ShopSerializer, ProductSerializer, ShopPublicSerializer, DiscountSerializer, \
+    BankCreditSerializer, ProductAttributeSerializer, PostSerializer, \
+    ProductImageSerializer, PostReadonlySerializer
 
 from scraping import scrape
 from utils import utils
@@ -176,12 +178,12 @@ class ShopView(APIView):
         return Response(ser.data, status=status.HTTP_200_OK)
 
 
-class ShopProductsView(APIView):
-    permission_classes = [IsShopOwnerOrReadOnly]
-    serializer_class = ProductSerializer
+class ShopPostView(APIView):
+    post_serializer_class = PostSerializer
+    product_image_serializer_class = ProductImageSerializer
 
-    def post(self, request, shop_pk):    # pk is shop id
-        """create all products with query_media json file"""
+    def post(self, request, shop_pk):  # pk is shop id
+        """create all posts and products with query_media json file"""
         response = {}
 
         shop = get_object_or_404(Shop, pk=shop_pk)
@@ -204,23 +206,33 @@ class ShopProductsView(APIView):
             return Response(response, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         index = 1
-        product_data = {}
-        for post_data in media_query:
-            if len(post_data['edge_media_to_caption']['edges']) > 0:
-                post_caption = post_data['edge_media_to_caption']['edges'][0]['node']['text']
+        post_data = {}
+        product_image_data = {}
+
+        for mq_item in media_query:
+            if len(mq_item['edge_media_to_caption']['edges']) > 0:
+                post_caption = mq_item['edge_media_to_caption']['edges'][0]['node']['text']
             else:
                 post_caption = ''
 
-            product_data["shop"] = shop.pk
-            product_data["shortcode"] = post_data['shortcode']
-            product_data["display_image"] = f"media/shop/{instagram_username}/{post_data['id']}/display_image.jpg"
-            product_data["title"] = f"آنلاین شاپ {instagram_username}، محصول {index}"
-            product_data["description"] = post_caption
-            product_data["instagram_link"] = post_data['shortcode']
+            post_data["shop"] = shop.pk
+            post_data["shortcode"] = mq_item['shortcode']
+            post_data["description"] = post_caption
+            post_data["instagram_link"] = mq_item['shortcode']
 
-            serializer = self.serializer_class(data=product_data)
-            serializer.is_valid(raise_exception=True)
-            serializer.save()
+            post_serializer = self.post_serializer_class(data=post_data)
+            post_serializer.is_valid(raise_exception=True)
+            post_serializer.save()
+
+            # TODO create more product images
+            product_image_data["post"] = post_serializer.data.get('id')
+            product_image_data["display_image"] = f"media/shop/{instagram_username}/{mq_item['id']}/display_image.jpg"
+
+            product_image_ser = self.product_image_serializer_class(data=product_image_data)
+            product_image_ser.is_valid(raise_exception=True)
+            product_image_ser.save()
+
+            # TODO create product if it is necessary
 
             index += 1
 
@@ -228,8 +240,8 @@ class ShopProductsView(APIView):
 
     def get(self, request, shop_pk):
         shop = get_object_or_404(Shop, pk=shop_pk)
-        products = Product.objects.filter(shop_id=shop.id)
-        ser = self.serializer_class(products, many=True)
+        posts = Post.objects.filter(shop_id=shop.id)
+        ser = self.post_serializer_class(posts, many=True)
         return Response(ser.data, status=status.HTTP_200_OK)
 
 
@@ -243,87 +255,46 @@ class ShopBankCreditsView(ListCreateAPIView):
 
 
 class ShopProductsPreviewView(APIView):
-    serializer_class = ShopProductsPreviewSerializer
-    # permission_classes = [AllowAny]
-    permission_classes = [IsShopOwnerOrReadOnly]
-    queryset = Product.objects
+    serializer_class = PostReadonlySerializer
+    permission_classes = [AllowAny]
 
     def get(self, request, *args, **kwargs):
-        products_list = Product.objects.filter(shop__instagram_username=kwargs['ig_username'],
-                                               original_price__isnull=False)
-        ser = self.serializer_class(products_list, many=True)
+        posts_list = Post.objects.filter(shop__instagram_username=kwargs['ig_username'],
+                                         productimage__product__original_price__isnull=False)
+        ser = self.serializer_class(posts_list, many=True)
         return Response(ser.data, status=status.HTTP_200_OK)
 
-    # def post(self, request, *args, **kwargs):
-    #     products_list = Product.objects.filter(shop__instagram_username=kwargs['ig_username'],
-    #                                            original_price__isnull=False)
-    #     if len(products_list):
-    #         product = products_list[0]
-    #     else:
-    #         return Response(status=status.HTTP_400_BAD_REQUEST)
-    #
-    #     product_data = {
-    #         "shortcode": product.shortcode,
-    #         "display_image": product.display_image,
-    #         "title": 'جدید',
-    #         "description": product.description,
-    #         "instagram_link": product.instagram_link
-    #     }
-    #
-    #     serializer = self.serializer_class(product, data=product_data)
-    #     serializer.is_valid(raise_exception=True)
-    #     serializer.save()
-    #
-    #     return Response(status=status.HTTP_200_OK)
 
-
-class ShopPublicView(APIView):
+class ShopPublicView(RetrieveAPIView):
     permission_classes = [AllowAny]
-    query_set = Shop.objects.all()
+    queryset = Shop.objects.all()
     serializer_class = ShopPublicSerializer
-
-    def get(self, request, ig_username):
-        try:
-            shop = self.query_set.get(instagram_username=ig_username)
-        except Shop.DoesNotExist:
-            return Response(status=status.HTTP_404_NOT_FOUND)
-        ser = self.serializer_class(shop)
-        return Response(ser.data, status=status.HTTP_200_OK)
+    lookup_field = 'instagram_username'
+    lookup_url_kwarg = 'ig_username'
 
 
-class ProductView(APIView):
+class ProductView(RetrieveUpdateAPIView):
     serializer_class = ProductSerializer
-
-    def get(self, request, product_shortcode):
-        product = get_object_or_404(Product, shortcode=product_shortcode)
-        ser = self.serializer_class(product)
-        return Response(ser.data, status=status.HTTP_200_OK)
-
-    def put(self, request, product_shortcode):
-        product = get_object_or_404(Product, shortcode=product_shortcode)
-        if request.data.get('id') != product.id:
-            return Response(status=status.HTTP_400_BAD_REQUEST)
-        ser = self.serializer_class(product, data=request.data)
-        ser.is_valid(raise_exception=True)
-        ser.save()
-        return Response(ser.data, status=status.HTTP_200_OK)
+    queryset = Product.objects.all()
+    lookup_url_kwarg = 'product_pk'
+    lookup_field = 'pk'
 
 
-class ProductPublicView(APIView):
-    serializer_class = ProductPublicSerializer
+class PostPublicView(RetrieveAPIView):
+    serializer_class = PostReadonlySerializer
     permission_classes = [AllowAny]
-
-    def get(self, request, product_shortcode):
-        product = get_object_or_404(Product, shortcode=product_shortcode)
-        ser = self.serializer_class(product)
-        return Response(ser.data, status=status.HTTP_200_OK)
+    queryset = Post.objects.all()
+    lookup_url_kwarg = 'post_shortcode'
+    lookup_field = 'shortcode'
 
 
 class ProductDiscountView(APIView):
     serializer_class = DiscountSerializer
+    query_set = Discount.objects.all()
 
-    def post(self, request, product_shortcode):
-        product = get_object_or_404(Product, shortcode=product_shortcode)
+    def post(self, request, product_pk):
+        """ create a new discount for product"""
+        product = get_object_or_404(Product, pk=product_pk)
         if request.data.get('product') != product.id:
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
@@ -338,15 +309,27 @@ class ProductDiscountView(APIView):
 
         return Response(response, status=status.HTTP_201_CREATED)
 
+    def put(self, request, product_pk):
+        """ this method will inactive the last discount of product """
+        product = get_object_or_404(Product, pk=product_pk)
+        if request.data.get('product') != product.id:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+
+        discount = self.query_set.filter(product=product).last()
+        if discount is None:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+        discount.is_active = False
+        discount.save()
+        return Response(status=status.HTTP_200_OK)
+
 
 class ProductAttributeCreateView(APIView):
     serializer_class = ProductAttributeSerializer
 
     def post(self, request, *args, **kwargs):
-        product_shortcode = kwargs.get('product_shortcode')
-        product = get_object_or_404(Product, shortcode=product_shortcode)
+        product_pk = kwargs.get('product_pk')
         data = request.data
-        data['product'] = product.id
+        data['product'] = product_pk
         ser = self.serializer_class(data=data)
         ser.is_valid(raise_exception=True)
         ser.save()
@@ -357,6 +340,6 @@ class ProductAttributeDeleteView(DestroyAPIView):
     serializer_class = ProductAttributeSerializer
 
     def get_queryset(self):
-        product_shortcode = self.kwargs.get('product_shortcode')
+        product_pk = self.kwargs.get('product_pk')
         attribute_id = self.kwargs.get('pk')
-        return ProductAttribute.objects.filter(product__shortcode=product_shortcode, pk=attribute_id)
+        return ProductAttribute.objects.filter(product_id=product_pk, pk=attribute_id)
