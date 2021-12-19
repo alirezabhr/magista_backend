@@ -84,6 +84,29 @@ class Scraper:
             }
             raise CustomException(503, error_data)
 
+    def __get_media_details(self, shortcode):
+        resp = self.get_data(VIEW_MEDIA_URL.format(shortcode))
+
+        if resp is not None:
+            try:
+                return json.loads(resp)['graphql']['shortcode_media']
+            except ValueError:
+                # Response wasn't JSON, so maybe it was an HTML page.
+                data = resp.split("window.__additionalDataLoaded(")[1].split("});</script>")[0].split('{"graphql":')[1]
+                try:
+                    return json.loads(data)['shortcode_media']
+                except ValueError:
+                    error_data = {
+                        'text': 'Failed to get media details for ' + shortcode
+                    }
+                    raise CustomException(503, error_data)
+
+        else:
+            error_data = {
+                'text': 'Failed to get media details for ' + shortcode
+            }
+            raise CustomException(503, error_data)
+
     def query_media_gen(self, user_id, end_cursor=''):
         """Generator for media."""
         media, end_cursor = self.__query_media(user_id, end_cursor)
@@ -136,21 +159,46 @@ class Scraper:
         })
 
     def _get_nodes(self, container):
-        return [node['node'] for node in container['edges']]
-        # return [self.__change_node(node['node']) for node in container['edges']]
+        return [self.__change_node(node['node']) for node in container['edges']]
 
     def __change_node(self, node):
+        print('before changing nodes')
+        children = []
+        if '__typename' in node and node['__typename'] == 'GraphSidecar':
+            children = self.__get_children_nodes(node)
+
+        caption = ''
+        if 'edge_media_to_caption' in node and 'edges' in node['edge_media_to_caption'] and len(
+                node['edge_media_to_caption']['edges']) > 0:
+            caption = node['edge_media_to_caption']['edges'][0]['node']['text']
+
         new_node = {
             "id": node['id'],
             "__typename": node['__typename'],
-            "caption": node['edge_media_to_caption']['edges'][0]['node']['text'],
+            "caption": caption,
             "shortcode": node['shortcode'],
             "display_url": node['display_url'],
             "thumbnail_src": node['thumbnail_src'],
             "thumbnail_resources": node['thumbnail_resources'],
-            "is_video": node['is_video']
+            "is_video": node['is_video'],
+            "children": children,
         }
         return new_node
+
+    def __get_children_nodes(self, node):
+        print('before __get_media_details')
+        details = self.__get_media_details(node['shortcode'])
+        nodes = []
+        print('after __get_media_details')
+
+        for carousel_item in details['edge_sidecar_to_children']['edges']:
+            n = {}
+            node = carousel_item['node']
+            n['id'] = node['id']
+            n['display_url'] = node['display_url']
+            nodes.append(n)
+
+        return nodes
 
     def get_media_data(self, user):
         posts = [post for post in self.query_media_gen(user_id=user['id'])]
