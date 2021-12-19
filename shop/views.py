@@ -5,7 +5,7 @@ from rest_framework.response import Response
 from rest_framework import status, permissions
 from rest_framework.permissions import AllowAny
 
-from .models import Shop, Product, BankCredit, ProductAttribute, Post, Discount
+from .models import Shop, Product, BankCredit, ProductAttribute, Post, Discount, TagLocation
 from .serializers import ShopSerializer, ProductSerializer, ShopPublicSerializer, DiscountSerializer, \
     BankCreditSerializer, ProductAttributeSerializer, PostSerializer, \
     ProductImageSerializer, PostReadonlySerializer, TagLocationSerializer
@@ -263,8 +263,7 @@ class ShopProductsPreviewView(APIView):
     permission_classes = [AllowAny]
 
     def get(self, request, *args, **kwargs):
-        posts_list = Post.objects.filter(shop__instagram_username=kwargs['ig_username'],
-                                         productimage__product__original_price__isnull=False)
+        posts_list = Post.objects.filter(shop__instagram_username=kwargs['ig_username'])
         ser = self.serializer_class(posts_list, many=True)
         return Response(ser.data, status=status.HTTP_200_OK)
 
@@ -349,5 +348,17 @@ class ProductAttributeDeleteView(DestroyAPIView):
         return ProductAttribute.objects.filter(product_id=product_pk, pk=attribute_id)
 
 
-class ProductTagCreateView(CreateAPIView):
+class ProductTagView(CreateAPIView):
     serializer_class = TagLocationSerializer
+
+    def put(self, request):
+        product = get_object_or_404(Product, pk=request.data.get('product'))
+        try:
+            tag = product.tag
+        except TagLocation.DoesNotExist:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+
+        ser = self.serializer_class(tag, data=request.data)
+        ser.is_valid(raise_exception=True)
+        ser.save()
+        return Response(ser.data, status=status.HTTP_200_OK)
