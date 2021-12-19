@@ -88,7 +88,7 @@ class Product(models.Model):
     image = models.ForeignKey(ProductImage, models.PROTECT)
     title = models.CharField(max_length=40, blank=True)
     description = models.CharField(max_length=60, blank=True)
-    original_price = models.PositiveIntegerField(null=True, default=None)
+    original_price = models.PositiveIntegerField()
     is_existing = models.BooleanField(default=True)
     updated_at = models.DateTimeField(auto_now=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -132,9 +132,7 @@ class Product(models.Model):
 
     @property
     def final_price(self):
-        if self.original_price:
-            return self.original_price - self.discount_amount
-        return None
+        return self.original_price - self.discount_amount
 
     @property
     def tag(self):
@@ -146,8 +144,8 @@ class Product(models.Model):
 
 class TagLocation(models.Model):
     product = models.OneToOneField(Product, models.CASCADE)
-    x = models.SmallIntegerField()
-    y = models.SmallIntegerField()
+    x = models.SmallIntegerField(default=50)
+    y = models.SmallIntegerField(default=50)
 
 
 class ProductAttribute(models.Model):
