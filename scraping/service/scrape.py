@@ -165,7 +165,6 @@ class Scraper:
         return [self.__change_node(node['node']) for node in container['edges']]
 
     def __change_node(self, node):
-        print('before changing nodes')
         children = []
         if '__typename' in node and node['__typename'] == 'GraphSidecar':
             children = self.__get_children_nodes(node)
@@ -189,10 +188,8 @@ class Scraper:
         return new_node
 
     def __get_children_nodes(self, node):
-        print('before __get_media_details')
         details = self.__get_media_details(node['shortcode'])
         nodes = []
-        print('after __get_media_details')
 
         for carousel_item in details['edge_sidecar_to_children']['edges']:
             n = {}
