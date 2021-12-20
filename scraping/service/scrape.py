@@ -44,8 +44,11 @@ class Scraper:
         self.session.headers.update({'X-CSRFToken': req.cookies['csrftoken']})
 
         login_data = {'username': self.username, 'password': self.password}
+        print(1)
         login = self.session.post(LOGIN_URL, data=login_data, allow_redirects=True)
+        print(login.status_code)
         self.session.headers.update({'X-CSRFToken': login.cookies['csrftoken']})
+        print(3)
         self.cookies = login.cookies
         login_text = json.loads(login.text)
 
@@ -205,8 +208,8 @@ class Scraper:
         return posts
 
 
-def scrape_instagram_media(username):
-    scraper = Scraper(login_user='tmp_magista', login_pass='magista1400')
+def scrape_instagram_media(login_user, login_pass, username):
+    scraper = Scraper(login_user=login_user, login_pass=login_pass)
     scraper.authenticate_with_login()
     page_info_url = USER_URL.format(username)
 
@@ -310,6 +313,12 @@ def save_preview_images(username, page):
         file_dir = os.path.join(settings.MEDIA_ROOT, 'shop', username, post_data['id'])
         os.makedirs(file_dir, exist_ok=True)
         download_and_save_media(post_data['thumbnail_src'], file_dir, 'display_image.jpg')
+        # if the post is GraphSidecar (has slide images) download and save other posts
+        if post_data.get('__typename') == 'GraphSidecar':
+            for index, image in enumerate(post_data['children']):
+                if index == 0:  # first node image has just downloaded
+                    continue
+                download_and_save_media(image['display_url'], file_dir, f'image{index+1}.jpg')
         start_post += 1
 
 
@@ -352,12 +361,19 @@ def get_page_preview_data(username, page):
         has_next = True
 
     while start_post < end_post:
+        children = []
         post_data = file_data[start_post]
         display_img_full_path = f"media/shop/{username}/{post_data['id']}/display_image.jpg"
+
+        for i, child in enumerate(post_data['children']):
+            child_img_path = f"media/shop/{username}/{post_data['id']}/image{i+2}.jpg"
+            children.append({'id': post_data['children'][i-1]['id'], 'display_image': child_img_path})
+
         tmp_dict = {
             "index": start_post,
             "id": post_data['id'],
-            "thumbnail_src": display_img_full_path
+            "thumbnail_src": display_img_full_path,
+            "children": children,
         }
         posts_return_data.append(tmp_dict)
         start_post += 1
