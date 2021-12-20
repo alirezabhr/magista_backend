@@ -10,7 +10,8 @@ from .serializers import ShopSerializer, ProductSerializer, ShopPublicSerializer
     BankCreditSerializer, ProductAttributeSerializer, PostSerializer, \
     ProductImageSerializer, PostReadonlySerializer, TagLocationSerializer
 
-from scraping import scrape
+from scraping.models import Scraper
+from scraping.service import scrape
 from utils import utils
 
 
@@ -38,25 +39,61 @@ class ShopMediaQueryView(APIView):
     instagram_username = ""
     extra_posts = []
 
-    def __remove_extra_posts_dirs(self):
+    def __remove_extra_posts_dirs_and_images(self):
+        """remove extra posts directory and images in media root for an instagram online shop"""
+
+        removed_parents_id = []
+        for extra_post in self.extra_posts[::-1]:   # reverse it because it's like stack, and want to pop
+            if extra_post.get('children'):
+                # it is parent post
+                pid = extra_post.get('id')
+                self.__remove_extra_posts_dirs(pid)
+                removed_parents_id.append(pid)
+            else:
+                # it's child post
+                if extra_post.get('parent') not in removed_parents_id:
+                    # its parent post was not removed
+                    self.__remove_extra_posts_images(extra_post.get('parent'), f"image{extra_post.get('index')+2}.jpg")
+
+    def __remove_extra_posts_images(self, post_id, file_name):
+        """remove extra posts images in subdirectories for an instagram online shop"""
+
+        try:
+            utils.remove_shop_media_image(self.instagram_username, post_id, file_name)
+        except OSError as e:
+            print(f"Error: {e.filename} - {e.strerror}.")
+
+    def __remove_extra_posts_dirs(self, post_id):
         """remove extra posts directory and directory contents in media root for an instagram online shop"""
 
-        for extra_post in self.extra_posts:
-            try:
-                utils.remove_shop_media_directory(self.instagram_username, extra_post.get('id'))
-            except OSError as e:
-                print(f"Error: {e.filename} - {e.strerror}.")
+        try:
+            utils.remove_shop_media_directory(self.instagram_username, post_id)
+        except OSError as e:
+            print(f"Error: {e.filename} - {e.strerror}.")
 
     def __remove_extra_posts_media_query(self):
         """remove extra posts data from media query json file of an instagram page"""
 
-        extra_posts_id_list = [post['id'] for post in self.extra_posts]
+        # extra_posts_id_list = [post['id'] for post in self.extra_posts]
         media_query_data = scrape.read_user_media_query_data(self.instagram_username)
-
         media_query_data_copy = media_query_data.copy()
-        for post_data in media_query_data_copy:
-            if post_data['id'] in extra_posts_id_list:
-                media_query_data.remove(post_data)
+
+        for extra_post in self.extra_posts:
+            if extra_post.get('children'):
+                # it was a parent post
+                for mq in media_query_data:
+                    if mq['id'] == extra_post['id']:
+                        media_query_data.remove(mq)
+                        break
+            else:
+                # it was a child post
+                for parent in media_query_data:
+                    if parent['id'] == extra_post['parent']:
+                        for child in parent['children']:
+                            if child['id'] == extra_post['id']:
+                                media_query_data.remove(child)
+                                break
+                        break
 
         scrape.write_user_media_query_data(self.instagram_username, media_query_data)
 
@@ -75,16 +112,43 @@ class ShopMediaQueryView(APIView):
             response["error"] = [f'مغازه {self.instagram_username} موجود است.']
             return Response(response, status=status.HTTP_400_BAD_REQUEST)
 
+        scrapers = Scraper.objects.filter(is_working=False)
+        count = 0
+        scraper_index = 0
+
+        for i, scraper in enumerate(scrapers):
+            if i == 0:
+                count = scraper.scrape_count
+                scraper_index = i
+                continue
+
+            if scraper.scrape_count < count:
+                count = scraper.scrape_count
+                scraper_index = i
+
+        scraper = scrapers[scraper_index]
+        scraper.is_working = True
+        scraper.scrape_count += 1
+        scraper.save()
+
         try:
-            data = scrape.scrape_instagram_media(self.instagram_username)
+            data = scrape.scrape_instagram_media(scraper.username, scraper.password, self.instagram_username)
             scrape.write_user_media_query_data(self.instagram_username, data)
             response = scrape.read_user_profile_info_data(self.instagram_username)
+            scraper.is_working = False
+            scraper.save()
             return Response(response, status=status.HTTP_200_OK)
         except scrape.CustomException as ex:
             response["error"] = [ex.message]
+            response["type"] = 'scraper error'
+            scraper.is_working = False
+            scraper.save()
             return Response(response, status=ex.status)
         except Exception as exc:
             response["error"] = [str(exc)]
+            response["type"] = 'system error'
+            scraper.is_working = False
+            scraper.save()
             return Response(response, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     def get(self, request):
@@ -132,7 +196,7 @@ class ShopMediaQueryView(APIView):
             response["error"] = ["shop not found"]
             return Response(response, status=status.HTTP_404_NOT_FOUND)
 
-        self.__remove_extra_posts_dirs()
+        self.__remove_extra_posts_dirs_and_images()
         self.__remove_extra_posts_media_query()
 
         return Response(status=status.HTTP_200_OK)
