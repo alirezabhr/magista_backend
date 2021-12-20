@@ -43,9 +43,9 @@ class ShopMediaQueryView(APIView):
         """remove extra posts directory and images in media root for an instagram online shop"""
 
         removed_parents_id = []
-        for extra_post in self.extra_posts[::-1]:   # reverse it because it's like stack, and want to pop
-            if extra_post.get('children'):
-                # it is parent post
+        for extra_post in self.extra_posts[::-1]:  # reverse it because it's like stack, and want to pop
+            if not extra_post.get('parent'):
+                # it doesn't have parent so it is parent post
                 pid = extra_post.get('id')
                 self.__remove_extra_posts_dirs(pid)
                 removed_parents_id.append(pid)
@@ -53,7 +53,8 @@ class ShopMediaQueryView(APIView):
                 # it's child post
                 if extra_post.get('parent') not in removed_parents_id:
                     # its parent post was not removed
-                    self.__remove_extra_posts_images(extra_post.get('parent'), f"image{extra_post.get('index')+2}.jpg")
+                    self.__remove_extra_posts_images(extra_post.get('parent'),
+                                                     f"image{extra_post.get('index') + 2}.jpg")
 
     def __remove_extra_posts_images(self, post_id, file_name):
         """remove extra posts images in subdirectories for an instagram online shop"""
@@ -74,12 +75,13 @@ class ShopMediaQueryView(APIView):
     def __remove_extra_posts_media_query(self):
         """remove extra posts data from media query json file of an instagram page"""
 
-        # extra_posts_id_list = [post['id'] for post in self.extra_posts]
         media_query_data = scrape.read_user_media_query_data(self.instagram_username)
-        media_query_data_copy = media_query_data.copy()
 
-        for extra_post in self.extra_posts:
-            if extra_post.get('children'):
+        for extra_post in self.extra_posts[::-1]:
+            """it should be reversed because extra_posts list is like stack,
+            and it is possible to remove a parent before removing its child when it is reversed.
+            So complexity will be reduced and function finished faster"""
+            if not extra_post.get('parent'):
                 # it was a parent post
                 for mq in media_query_data:
                     if mq['id'] == extra_post['id']:
@@ -91,7 +93,7 @@ class ShopMediaQueryView(APIView):
                     if parent['id'] == extra_post['parent']:
                         for child in parent['children']:
                             if child['id'] == extra_post['id']:
-                                media_query_data.remove(child)
+                                parent['children'].remove(child)
                                 break
                         break
 
@@ -269,12 +271,12 @@ class ShopPostView(APIView):
             response["error"] = [str(exc)]
             return Response(response, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-        index = 1
         post_data = {}
         product_image_data = {}
 
-        for mq_item in media_query:
-            if len(mq_item['edge_media_to_caption']['edges']) > 0:
+        for mq_item in media_query[::-1]:  # it should be reversed to create older instagram posts first
+            if 'edge_media_to_caption' in mq_item and 'edges' in mq_item['edge_media_to_caption'] and len(
+                    mq_item['edge_media_to_caption']['edges']) > 0:
                 post_caption = mq_item['edge_media_to_caption']['edges'][0]['node']['text']
             else:
                 post_caption = ''
@@ -288,17 +290,18 @@ class ShopPostView(APIView):
             post_serializer.is_valid(raise_exception=True)
             post_serializer.save()
 
-            # TODO create more product images
             product_image_data["post"] = post_serializer.data.get('id')
             product_image_data["display_image"] = f"media/shop/{instagram_username}/{mq_item['id']}/display_image.jpg"
-
             product_image_ser = self.product_image_serializer_class(data=product_image_data)
             product_image_ser.is_valid(raise_exception=True)
             product_image_ser.save()
 
-            # TODO create product if it is necessary
-
-            index += 1
+            for i, child in enumerate(mq_item["children"]):
+                product_image_data["post"] = post_serializer.data.get('id')
+                product_image_data["display_image"] = f"media/shop/{instagram_username}/{mq_item['id']}/image{i + 2}.jpg"
+                product_image_ser = self.product_image_serializer_class(data=product_image_data)
+                product_image_ser.is_valid(raise_exception=True)
+                product_image_ser.save()
 
         return Response(status=status.HTTP_200_OK)
 
