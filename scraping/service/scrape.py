@@ -366,13 +366,27 @@ def get_page_preview_data(username, page):
         display_img_full_path = f"media/shop/{username}/{post_data['id']}/display_image.jpg"
 
         for i, child in enumerate(post_data['children']):
-            child_img_path = f"media/shop/{username}/{post_data['id']}/image{i+2}.jpg"
-            children.append({'id': post_data['children'][i-1]['id'], 'display_image': child_img_path})
+            if i == 0:
+                continue
+            child_img_path = f"media/shop/{username}/{post_data['id']}/image{i+1}.jpg"
+            tmp_child = {
+                'index': i-1,
+                'id': post_data['children'][i-1]['id'],
+                'display_image': child_img_path,
+                'parent': post_data['id'],
+            }
+            children.append(tmp_child)
+
+        """
+            Need index for front when the shop creator is undoing removed posts,
+            also need in backend for removing media image in subdirectories.
+            Both in child nodes and parent nodes.
+        """
 
         tmp_dict = {
             "index": start_post,
             "id": post_data['id'],
-            "thumbnail_src": display_img_full_path,
+            "display_image": display_img_full_path,
             "children": children,
         }
         posts_return_data.append(tmp_dict)
