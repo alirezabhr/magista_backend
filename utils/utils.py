@@ -21,3 +21,10 @@ def remove_shop_media_directory(ig_username, dir_name):
 
     if os.path.exists(folder_path):
         shutil.rmtree(folder_path)
+
+
+def remove_shop_media_image(ig_username, dir_name, file_name):
+    file_path = os.path.join(settings.MEDIA_ROOT, 'shop', ig_username, dir_name, file_name)
+
+    if os.path.isfile(file_path):
+        os.remove(file_path)
