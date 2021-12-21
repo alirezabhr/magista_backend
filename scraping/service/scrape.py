@@ -44,11 +44,8 @@ class Scraper:
         self.session.headers.update({'X-CSRFToken': req.cookies['csrftoken']})
 
         login_data = {'username': self.username, 'password': self.password}
-        print(1)
         login = self.session.post(LOGIN_URL, data=login_data, allow_redirects=True)
-        print(login.status_code)
         self.session.headers.update({'X-CSRFToken': login.cookies['csrftoken']})
-        print(3)
         self.cookies = login.cookies
         login_text = json.loads(login.text)
 
@@ -184,6 +181,7 @@ class Scraper:
             "thumbnail_resources": node['thumbnail_resources'],
             "is_video": node['is_video'],
             "children": children,
+            "edge_media_to_caption": node['edge_media_to_caption'],
         }
         return new_node
 
@@ -312,10 +310,12 @@ def save_preview_images(username, page):
         download_and_save_media(post_data['thumbnail_src'], file_dir, 'display_image.jpg')
         # if the post is GraphSidecar (has slide images) download and save other posts
         if post_data.get('__typename') == 'GraphSidecar':
-            for index, image in enumerate(post_data['children']):
+            for index, child in enumerate(post_data['children']):
                 if index == 0:  # first node image has just downloaded
                     continue
-                download_and_save_media(image['display_url'], file_dir, f'image{index+1}.jpg')
+                file_dir = os.path.join(settings.MEDIA_ROOT, 'shop', username, post_data['id'], child['id'])
+                os.makedirs(file_dir, exist_ok=True)
+                download_and_save_media(child['display_url'], file_dir, 'display_image.jpg')
         start_post += 1
 
 
@@ -365,10 +365,10 @@ def get_page_preview_data(username, page):
         for i, child in enumerate(post_data['children']):
             if i == 0:
                 continue
-            child_img_path = f"media/shop/{username}/{post_data['id']}/image{i+1}.jpg"
+            child_img_path = f"media/shop/{username}/{post_data['id']}/{child['id']}/display_image.jpg"
             tmp_child = {
                 'index': i-1,
-                'id': post_data['children'][i-1]['id'],
+                'id': child['id'],
                 'display_image': child_img_path,
                 'parent': post_data['id'],
             }
