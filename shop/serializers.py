@@ -63,13 +63,12 @@ class ProductSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
-class ShopProductsPreviewSerializer(serializers.ModelSerializer):
-    updated_at = serializers.DateTimeField(format="%Y-%m-%d %H:%M:%S", read_only=True)
-    created_at = serializers.DateTimeField(format="%Y-%m-%d %H:%M:%S", read_only=True)
+class ProductReadonlySerializer(serializers.ModelSerializer):
     attributes = ProductAttributeSerializer(read_only=True, many=True)
     rate = serializers.ReadOnlyField()
     tag = TagLocationSerializer(read_only=True)
-    # shop = ShopPublicSerializer()
+    shop = serializers.SerializerMethodField('get_shop')
+    display_image_url = serializers.SerializerMethodField('get_image')
 
     class Meta:
         model = Product
@@ -85,10 +84,16 @@ class ShopProductsPreviewSerializer(serializers.ModelSerializer):
             'discount_description',
             'final_price',
             'is_existing',
-            'updated_at',
-            'created_at',
+            'tag',
+            'shop',
+            'display_image_url',
         ]
-        depth = 1
+
+    def get_shop(self, product):
+        return ShopPublicSerializer(product.image.post.shop).data
+
+    def get_image(self, product):
+        return product.image.display_image
 
 
 class ProductImageSerializer(serializers.ModelSerializer):
@@ -100,7 +105,7 @@ class ProductImageSerializer(serializers.ModelSerializer):
 
 
 class ProductImageReadonlySerializer(serializers.ModelSerializer):
-    products = ProductSerializer(read_only=True, many=True)
+    products = ProductReadonlySerializer(read_only=True, many=True)
 
     class Meta:
         model = ProductImage

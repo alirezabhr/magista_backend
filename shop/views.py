@@ -324,8 +324,9 @@ class ShopProductsPreviewView(APIView):
 
     def get(self, request, *args, **kwargs):
         posts_list = Post.objects.filter(shop__instagram_username=kwargs['ig_username'])
+        posts_list = [p for p in posts_list if p.has_product]
         ser = self.serializer_class(posts_list, many=True)
-        return Response(ser.data, status=status.HTTP_200_OK)
+        return Response(ser.data[::-1], status=status.HTTP_200_OK)
 
 
 class ShopPublicView(RetrieveAPIView):
