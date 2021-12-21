@@ -53,22 +53,13 @@ class ShopMediaQueryView(APIView):
                 # it's child post
                 if extra_post.get('parent') not in removed_parents_id:
                     # its parent post was not removed
-                    self.__remove_extra_posts_images(extra_post.get('parent'),
-                                                     f"image{extra_post.get('index') + 2}.jpg")
+                    self.__remove_extra_posts_dirs(extra_post.get('parent'), extra_post.get('id'))
 
-    def __remove_extra_posts_images(self, post_id, file_name):
-        """remove extra posts images in subdirectories for an instagram online shop"""
-
-        try:
-            utils.remove_shop_media_image(self.instagram_username, post_id, file_name)
-        except OSError as e:
-            print(f"Error: {e.filename} - {e.strerror}.")
-
-    def __remove_extra_posts_dirs(self, post_id):
+    def __remove_extra_posts_dirs(self, *dirs):
         """remove extra posts directory and directory contents in media root for an instagram online shop"""
 
         try:
-            utils.remove_shop_media_directory(self.instagram_username, post_id)
+            utils.remove_shop_media_directory(self.instagram_username, *dirs)
         except OSError as e:
             print(f"Error: {e.filename} - {e.strerror}.")
 
@@ -296,9 +287,11 @@ class ShopPostView(APIView):
             product_image_ser.is_valid(raise_exception=True)
             product_image_ser.save()
 
-            for i, child in enumerate(mq_item["children"]):
+            for index, child in enumerate(mq_item["children"]):
+                if index == 0:
+                    continue
                 product_image_data["post"] = post_serializer.data.get('id')
-                product_image_data["display_image"] = f"media/shop/{instagram_username}/{mq_item['id']}/image{i + 2}.jpg"
+                product_image_data["display_image"] = f"media/shop/{instagram_username}/{mq_item['id']}/{child['id']}/display_image.jpg "
                 product_image_ser = self.product_image_serializer_class(data=product_image_data)
                 product_image_ser.is_valid(raise_exception=True)
                 product_image_ser.save()
@@ -309,7 +302,7 @@ class ShopPostView(APIView):
         shop = get_object_or_404(Shop, pk=shop_pk)
         posts = Post.objects.filter(shop_id=shop.id)
         ser = self.post_serializer_class(posts, many=True)
-        return Response(ser.data, status=status.HTTP_200_OK)
+        return Response(ser.data[::-1], status=status.HTTP_200_OK)
 
 
 class ShopProductView(CreateAPIView):
