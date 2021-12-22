@@ -3,11 +3,11 @@ from rest_framework import serializers
 from shop.models import Product
 from user.serializers import CustomerSerializer
 from .models import OrderItem, Order, Invoice
-from shop.serializers import ProductSerializer
+from shop.serializers import ProductReadonlySerializer
 
 
 class OrderItemRetrieveSerializer(serializers.ModelSerializer):
-    product = ProductSerializer(read_only=True)
+    product = ProductReadonlySerializer(read_only=True)
 
     class Meta:
         model = OrderItem
