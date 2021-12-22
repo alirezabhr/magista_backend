@@ -103,7 +103,8 @@ class Product(models.Model):
         index = -1
 
         for index, oi in enumerate(OrderItem.objects.filter(product=self)):
-            sum_ += oi.order.rate
+            if oi.order.rate:
+                sum_ += oi.order.rate
 
         if index == -1:
             return None
