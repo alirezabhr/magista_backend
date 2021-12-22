@@ -48,6 +48,7 @@ class Customer(models.Model):
     province = models.CharField(max_length=30)
     city = models.CharField(max_length=30)
     address = models.TextField()
+    postal_code = models.CharField(max_length=20)
 
     def __str__(self):
         return f'{self.id}: {self.user.username}'
