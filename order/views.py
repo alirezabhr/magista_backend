@@ -1,12 +1,14 @@
+from django.utils import timezone
+
 from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.generics import get_object_or_404
 
-from shop.models import Product
-from .models import Order, Invoice
+from shop.models import Product, Shop
+from .models import Order, Invoice, OrderItem
 from .serializers import OrderSerializer, CartSerializer, OrderItemSerializer, OrderRetrieveSerializer, \
-    InvoiceSerializer
+    InvoiceSerializer, OrderItemDateTimeSerializer
 
 
 # Create your views here.
@@ -109,4 +111,27 @@ class OrderView(APIView):
         ser = self.serializer_class(order, data=payload)
         ser.is_valid(raise_exception=True)
         ser.save()
+        return Response(ser.data, status=status.HTTP_200_OK)
+
+
+class ShopStatsView(APIView):
+    serializer_class = OrderItemDateTimeSerializer
+
+    def get(self, request, shop_pk):
+        response = {}
+        get_object_or_404(Shop, pk=shop_pk)
+
+        try:
+            days = request.query_params['days']
+            days = int(days)
+        except KeyError:
+            response["error"] = ['تعداد روز مشخص نشده است.']
+            return Response(response, status=status.HTTP_400_BAD_REQUEST)
+
+        now = timezone.now()
+        from_date = now - timezone.timedelta(days=days+1)
+        order_items = OrderItem.objects.filter(order__shop=shop_pk,
+                                               order__status__range=(Order.Status.VERIFIED, Order.Status.RECEIVED),
+                                               order__invoice__created_at__range=(from_date, now))
+        ser = self.serializer_class(order_items, many=True)
         return Response(ser.data, status=status.HTTP_200_OK)
