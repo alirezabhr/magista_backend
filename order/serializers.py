@@ -35,6 +35,18 @@ class OrderItemSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
+class OrderItemDateTimeSerializer(serializers.ModelSerializer):
+    date = serializers.SerializerMethodField('get_created_at')
+    # order = OrderRetrieveSerializer(read_only=True)
+
+    def get_created_at(self, order_item):
+        return order_item.order.invoice.created_at.date()
+
+    class Meta:
+        model = OrderItem
+        fields = '__all__'
+
+
 class OrderSerializer(serializers.ModelSerializer):
     total_price = serializers.ReadOnlyField()
     status_text = serializers.ReadOnlyField()
