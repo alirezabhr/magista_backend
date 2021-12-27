@@ -1,3 +1,5 @@
+import json
+
 from rest_framework.generics import get_object_or_404, ListCreateAPIView, DestroyAPIView, RetrieveAPIView, \
     RetrieveUpdateAPIView, CreateAPIView
 from rest_framework.views import APIView
@@ -5,10 +7,12 @@ from rest_framework.response import Response
 from rest_framework import status, permissions
 from rest_framework.permissions import AllowAny, IsAdminUser
 
+from sms_service.sms_service import SMSService
 from .models import Shop, Product, BankCredit, ProductAttribute, Post, Discount, TagLocation
 from .serializers import ShopSerializer, ProductSerializer, ShopPublicSerializer, DiscountSerializer, \
     BankCreditSerializer, ProductAttributeSerializer, PostSerializer, \
     ProductImageSerializer, PostReadonlySerializer, TagLocationSerializer
+from logger.serializers import IssueSerializer
 
 from scraping.models import Scraper
 from scraping.service import scrape
@@ -35,6 +39,32 @@ class IsShopOwnerOrReadOnly(permissions.BasePermission):
 
 
 # Create your views here.
+class ShopCreationRequestView(APIView):
+    serializer_class = IssueSerializer
+
+    def post(self, request):
+        data = request.data
+        data['user'] = request.user.pk
+        data['phone'] = request.user.phone
+        data = {
+            'message': json.dumps(data),
+            'location': 'SHOP CREATION REQUEST',
+            'critical': False,
+            'is_customer_project': False,
+        }
+        ser = self.serializer_class(data=data)
+        ser.is_valid(raise_exception=True)
+        ser.save()
+
+        try:
+            SMSService().send_otp(phone='09174347638', otp=0)
+        except Exception as e:
+            print(e)
+            return Response(status=status.HTTP_503_SERVICE_UNAVAILABLE)
+
+        return Response(status=status.HTTP_201_CREATED)
+
+
 class ShopMediaQueryView(APIView):
     instagram_username = ""
     extra_posts = []
@@ -193,7 +223,7 @@ class ShopMediaQueryView(APIView):
         return Response(status=status.HTTP_200_OK)
 
 
-class SaveMedia(APIView):
+class SaveMediaView(APIView):
     permission_classes = [IsAdminUser]
 
     def post(self, request):
