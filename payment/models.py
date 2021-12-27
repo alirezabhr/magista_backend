@@ -31,10 +31,11 @@ class PaymentDetail(models.Model):  # for IPG
 class Withdraw(models.Model):
     shop = models.ForeignKey(Shop, models.PROTECT)
     pod_ref_num = models.CharField(max_length=20)
-    transaction_id = models.CharField(max_length=60)
-    transaction_date = models.CharField(max_length=30)
+    # transaction_id = models.CharField(max_length=60)
+    # transaction_date = models.CharField(max_length=30)
     amount = models.BigIntegerField()   # Rial
     receiver_full_name = models.CharField(max_length=80)
     destination_sheba = models.CharField(max_length=30)
-    end_to_end_id = models.CharField(max_length=60)
+    # end_to_end_id = models.CharField(max_length=60)
     transaction_code = models.CharField(max_length=80)  # شماره پیگیری
+    paid_at = models.DateTimeField(auto_now_add=True)

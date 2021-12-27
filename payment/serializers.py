@@ -27,18 +27,22 @@ class PaymentResultSerializer(serializers.Serializer):
 
 
 class WithdrawSerializer(serializers.ModelSerializer):
+    paid_at = serializers.DateTimeField(format="%Y-%m-%d %H:%M:%S", read_only=True)
+
     class Meta:
         model = Withdraw
         fields = '__all__'
 
 
 class WithdrawPublicSerializer(serializers.ModelSerializer):
+    paid_at = serializers.DateTimeField(format="%Y-%m-%d %H:%M:%S", read_only=True)
+
     class Meta:
         model = Withdraw
         fields = [
             'amount',
-            'transaction_date',
             'transaction_code',
+            'paid_at',
         ]
 
 
@@ -46,4 +50,5 @@ class WithdrawRequestSerializer(serializers.Serializer):
     shop = serializers.IntegerField()
     amount = serializers.IntegerField()
     sheba = serializers.CharField(max_length=30)
-    full_name = serializers.CharField(max_length=80)
+    first_name = serializers.CharField(max_length=40)
+    last_name = serializers.CharField(max_length=40)
