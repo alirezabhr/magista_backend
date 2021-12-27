@@ -85,6 +85,10 @@ class PaymentView(APIView):
         for order in paid_orders:
             order.status = Order.Status.PAID
             order.save()
+            # insert order total price in shop wallet
+            shop = order.shop
+            shop.wallet += order.total_price
+            shop.save()
 
         payment_invoice = PaymentInvoice.objects.get(invoice=int(invoice_num))
         payment_detail = {
@@ -101,6 +105,48 @@ class PaymentView(APIView):
 
         return Response(ser.data, status=status.HTTP_202_ACCEPTED)
 
+
+class WithdrawView(APIView):
+    serializer_class = WithdrawSerializer
+    request_serializer_class = WithdrawRequestSerializer
+    public_serializer_class = WithdrawPublicSerializer
+
+    def post(self, request):
+        pod = Pod()
+        ser = self.request_serializer_class(data=request.data)
+        ser.is_valid(raise_exception=True)
+
+        try:
+            paya_response = pod.paya(request.data)
+        except PodError as error:
+            rsp = {'error': error.error, 'type': 'pod_error'}
+            return Response(rsp, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+        except BankError as error:
+            rsp = {'error': error.error_dict, 'type': 'bank_error'}
+            return Response(rsp, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+        except Exception as error:
+            rsp = {'error': error, 'type': 'system_error'}
+            return Response(rsp, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+
+        withdraw_data = {
+            "shop": request.data['shop'],
+            "pod_ref_num": paya_response['pod_ref_num'],
+            "amount": request.data['amount'],
+            "receiver_full_name": request.data['first_name'] + request.data['last_name'],
+            "destination_sheba": request.data['sheba'],
+            "transaction_code": paya_response['bank_result']['Data'],
+        }
+        withdraw_ser = self.serializer_class(data=withdraw_data)
+        withdraw_ser.is_valid(raise_exception=True)
+        withdraw_ser.save()
+
+        withdraw = Withdraw.objects.get(transaction_code=paya_response['bank_result']['Data'])
+        ser = self.public_serializer_class(withdraw)
+
+        return Response(ser.data, status=status.HTTP_201_CREATED)
+
+"""
+THIS VIEW WORKS WITH NEW PAYA API. WHICH HAS SOME BUGS.
 
 class WithdrawView(APIView):
     serializer_class = WithdrawSerializer
@@ -151,3 +197,21 @@ class WithdrawView(APIView):
         ser = self.public_serializer_class(withdraw)
 
         return Response(ser.data, status=status.HTTP_201_CREATED)
+
+    # def _check_trx_status(self, dest_sheba):
+    #     try:
+    #         pod = Pod()
+    #         response = pod.check_transaction(dest_sheba)
+    #         if response[0]:
+    #             _save_trx(response[1])
+    #         else:
+    #             return Response
+    #     except PodError as error:
+    #         rsp = {'error': error.error, 'type': 'pod_error'}
+    #         return Response(rsp, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+    #     except BankError as error:
+    #         rsp = {'error': error.error_dict, 'type': 'bank_error'}
+    #         return Response(rsp, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+    #
+    #     return Response(, status=status.HTTP_200_OK)
+"""
