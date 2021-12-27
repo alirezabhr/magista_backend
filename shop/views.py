@@ -3,7 +3,7 @@ from rest_framework.generics import get_object_or_404, ListCreateAPIView, Destro
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status, permissions
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAdminUser
 
 from .models import Shop, Product, BankCredit, ProductAttribute, Post, Discount, TagLocation
 from .serializers import ShopSerializer, ProductSerializer, ShopPublicSerializer, DiscountSerializer, \
@@ -105,6 +105,105 @@ class ShopMediaQueryView(APIView):
             response["error"] = [f'مغازه {self.instagram_username} موجود است.']
             return Response(response, status=status.HTTP_400_BAD_REQUEST)
 
+        # scrapers = Scraper.objects.filter(is_working=False)
+        # count = 0
+        # scraper_index = 0
+        #
+        # for i, scraper in enumerate(scrapers):
+        #     if i == 0:
+        #         count = scraper.scrape_count
+        #         scraper_index = i
+        #         continue
+        #
+        #     if scraper.scrape_count < count:
+        #         count = scraper.scrape_count
+        #         scraper_index = i
+        #
+        # scraper = scrapers[scraper_index]
+        # scraper.is_working = True
+        # scraper.scrape_count += 1
+        # scraper.save()
+
+        try:
+            # data = scrape.scrape_instagram_media(scraper.username, scraper.password, self.instagram_username)
+            # scrape.write_user_media_query_data(self.instagram_username, data)
+            response = scrape.read_user_profile_info_data(self.instagram_username)
+            # scraper.is_working = False
+            # scraper.save()
+            return Response(response, status=status.HTTP_200_OK)
+        except scrape.CustomException as ex:
+            response["error"] = [ex.message]
+            response["type"] = 'scraper error'
+            # scraper.is_working = False
+            # scraper.save()
+            return Response(response, status=ex.status)
+        except Exception as exc:
+            response["error"] = [str(exc)]
+            response["type"] = 'system error'
+            # scraper.is_working = False
+            # scraper.save()
+            return Response(response, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    def get(self, request):
+        """this method will download all preview images of user instagram page,
+            from media query json file. and save them in specific directory"""
+        response = {}
+
+        try:
+            self.instagram_username = request.query_params['instagram_username']
+        except KeyError:
+            response["error"] = ['آیدی پیج اینستاگرام الزامی است.']
+            return Response(response, status=status.HTTP_400_BAD_REQUEST)
+
+        page = request.query_params.get('page')
+        if page is not None:
+            page = int(page)
+
+        try:
+            # scrape.save_preview_images(self.instagram_username, page)
+            response_data = scrape.get_page_preview_data(self.instagram_username, page)
+            return Response(response_data, status=status.HTTP_200_OK)
+        except scrape.CustomException as ex:
+            response["error"] = [ex.message]
+            return Response(response, status=ex.status)
+        except Exception as exc:
+            response["error"] = [str(exc)]
+            return Response(response, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    def put(self, request):
+        """this method will remove extra post directories and extra post data from json file"""
+        response = {}
+
+        try:
+            self.instagram_username = request.query_params['instagram_username']
+            self.extra_posts = request.data['extra_posts']
+            user_pk = request.data['user_id']
+        except KeyError:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            Shop.objects.get(instagram_username=self.instagram_username, vendor_id=user_pk)
+        except Shop.DoesNotExist:
+            response["error"] = ["shop not found"]
+            return Response(response, status=status.HTTP_404_NOT_FOUND)
+
+        self.__remove_extra_posts_dirs_and_images()
+        self.__remove_extra_posts_media_query()
+
+        return Response(status=status.HTTP_200_OK)
+
+
+class SaveMedia(APIView):
+    permission_classes = [IsAdminUser]
+
+    def post(self, request):
+        response = {}
+
+        try:
+            instagram_username = request.query_params['instagram_username']
+        except KeyError:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+
         scrapers = Scraper.objects.filter(is_working=False)
         count = 0
         scraper_index = 0
@@ -125,12 +224,10 @@ class ShopMediaQueryView(APIView):
         scraper.save()
 
         try:
-            data = scrape.scrape_instagram_media(scraper.username, scraper.password, self.instagram_username)
-            scrape.write_user_media_query_data(self.instagram_username, data)
-            response = scrape.read_user_profile_info_data(self.instagram_username)
+            data = scrape.scrape_instagram_media(scraper.username, scraper.password, instagram_username)
+            scrape.write_user_media_query_data(instagram_username, data)
             scraper.is_working = False
             scraper.save()
-            return Response(response, status=status.HTTP_200_OK)
         except scrape.CustomException as ex:
             response["error"] = [ex.message]
             response["type"] = 'scraper error'
@@ -144,55 +241,15 @@ class ShopMediaQueryView(APIView):
             scraper.save()
             return Response(response, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-    def get(self, request):
-        """this method will download all preview images of user instagram page,
-            from media query json file. and save them in specific directory"""
-        response = {}
+        has_next = True
+        page = 1
+        while has_next:
+            scrape.save_preview_images(instagram_username, page)
+            response_data = scrape.get_page_preview_data(instagram_username, page)
+            has_next = response_data['has_next']
+            page += 1
 
-        try:
-            self.instagram_username = request.query_params['instagram_username']
-        except KeyError:
-            response["error"] = ['آیدی پیج اینستاگرام الزامی است.']
-            return Response(response, status=status.HTTP_400_BAD_REQUEST)
-
-        page = request.query_params.get('page')
-        if page is not None:
-            page = int(page)
-
-        try:
-            scrape.save_preview_images(self.instagram_username, page)
-            response_data = scrape.get_page_preview_data(self.instagram_username, page)
-            return Response(response_data, status=status.HTTP_200_OK)
-        except scrape.CustomException as ex:
-            response["error"] = [ex.message]
-            return Response(response, status=ex.status)
-        except Exception as exc:
-            response["error"] = [str(exc)]
-            return Response(response, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-    def put(self, request):
-        """this method will remove extra post directories and extra post data from json file"""
-        response = {}
-
-        try:
-            self.instagram_username = request.query_params['instagram_username']
-            self.extra_posts = request.data['extra_posts']
-            user_pk = request.data['user_id']
-            if request.user.pk != user_pk:
-                return Response(status=status.HTTP_403_FORBIDDEN)
-        except KeyError:
-            return Response(status=status.HTTP_400_BAD_REQUEST)
-
-        try:
-            Shop.objects.get(instagram_username=self.instagram_username, vendor_id=user_pk)
-        except Shop.DoesNotExist:
-            response["error"] = ["shop not found"]
-            return Response(response, status=status.HTTP_404_NOT_FOUND)
-
-        self.__remove_extra_posts_dirs_and_images()
-        self.__remove_extra_posts_media_query()
-
-        return Response(status=status.HTTP_200_OK)
+        return Response(status=status.HTTP_201_CREATED)
 
 
 class ShopView(APIView):
