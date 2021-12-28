@@ -122,6 +122,11 @@ class PostSerializer(serializers.ModelSerializer):
         model = Post
         fields = '__all__'
 
+    def to_representation(self, instance):
+        response = super().to_representation(instance)
+        response["product_images"] = sorted(response["product_images"], key=lambda x: x["id"])
+        return response
+
 
 class PostReadonlySerializer(serializers.ModelSerializer):
     product_images = ProductImageReadonlySerializer(read_only=True, many=True)
@@ -133,6 +138,11 @@ class PostReadonlySerializer(serializers.ModelSerializer):
     class Meta:
         model = Post
         fields = '__all__'
+
+    def to_representation(self, instance):
+        response = super().to_representation(instance)
+        response["product_images"] = sorted(response["product_images"], key=lambda x: x["id"])
+        return response
 
 
 class DiscountSerializer(serializers.ModelSerializer):
