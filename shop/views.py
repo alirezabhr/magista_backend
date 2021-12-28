@@ -300,16 +300,17 @@ class ShopView(APIView):
 
         instagram_username = ser.data.get('instagram_username')
 
-        try:
-            profile_pic_url = scrape.save_profile_image(instagram_username)
-        except scrape.CustomException as ex:
-            response["error"] = [ex.message]
-            return Response(response, status=ex.status)
-        except Exception as exc:
-            response["error"] = [str(exc)]
-            return Response(response, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        # try:
+        #     profile_pic_url = scrape.save_profile_image(instagram_username)
+        # except scrape.CustomException as ex:
+        #     response["error"] = [ex.message]
+        #     return Response(response, status=ex.status)
+        # except Exception as exc:
+        #     response["error"] = [str(exc)]
+        #     return Response(response, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-        request_data['profile_pic'] = profile_pic_url
+        # request_data['profile_pic'] = profile_pic_url
+        request_data['profile_pic'] = f"media/shop/{instagram_username}/profile_image.jpg"
 
         ser = self.serializer_class(data=request_data)
         ser.is_valid(raise_exception=True)
@@ -327,7 +328,7 @@ class ShopPostView(APIView):
     product_image_serializer_class = ProductImageSerializer
 
     def post(self, request, shop_pk):  # pk is shop id
-        """create all posts and products with query_media json file"""
+        """create all posts and product images with query_media json file"""
         response = {}
 
         shop = get_object_or_404(Shop, pk=shop_pk)
