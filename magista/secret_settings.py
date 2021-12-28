@@ -13,8 +13,12 @@ mode = ProjectMode.Debug
 
 __debug_db = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'magista',
+        'USER': 'postgres',
+        'PASSWORD': 'alireza1379',
+        'HOST': '127.0.0.1',
+        'PORT': '5432',
     }
 }
 
