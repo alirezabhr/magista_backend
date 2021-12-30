@@ -279,6 +279,15 @@ class SaveMediaView(APIView):
             has_next = response_data['has_next']
             page += 1
 
+        try:
+            scrape.save_profile_image(instagram_username)
+        except scrape.CustomException as ex:
+            response["error"] = [ex.message]
+            return Response(response, status=ex.status)
+        except Exception as exc:
+            response["error"] = [str(exc)]
+            return Response(response, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+
         return Response(status=status.HTTP_201_CREATED)
 
 
