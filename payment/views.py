@@ -1,3 +1,5 @@
+from django.utils import timezone
+
 from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -84,6 +86,7 @@ class PaymentView(APIView):
         paid_orders = Order.objects.filter(invoice_id=invoice_num)
         for order in paid_orders:
             order.status = Order.Status.PAID
+            order.paid_at = timezone.now()
             order.save()
             # insert order total price in shop wallet
             shop = order.shop
