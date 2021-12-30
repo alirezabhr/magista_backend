@@ -21,25 +21,35 @@ class Invoice(models.Model):
 
     @property
     def is_paid(self):
-        return self.orders.last().status >= Order.Status.PAID
+        return self.orders.last().paid_at is not None
 
 
 class Order(models.Model):
     status_text_list = ['در انتظار پرداخت', 'پرداخت شده', 'تایید شده', 'ارسال شده', 'دریافت شده', 'لغو شده']
 
     class Status(models.IntegerChoices):
-        CANCELED = -1
-        AWAITING_PAYMENT = 1
-        PAID = 2
-        VERIFIED = 3
-        SHIPPED = 4
-        RECEIVED = 5
+        AWAITING_PAYMENT = 0
+        PAID = 1
+        VERIFIED = 2
+        SHIPPED = 3
+        RECEIVED = 4
+        CANCELED = 5
+
+    class ShippingOptions(models.IntegerChoices):
+        PERSONAL_DELIVERY = 0
+        ONLINE_DELIVERY = 1
+        OFFLINE_DELIVERY = 2
+        NATIONAL_POST = 3
 
     invoice = models.ForeignKey(Invoice, models.PROTECT)
     shop = models.ForeignKey('shop.Shop', models.PROTECT)
     status = models.IntegerField(choices=Status.choices)
-    updated_at = models.DateTimeField(auto_now=True)
     rate = models.SmallIntegerField(null=True)
+    shipped_by = models.IntegerField(null=True, choices=ShippingOptions.choices)
+    paid_at = models.DateTimeField(null=True)
+    verified_at = models.DateTimeField(null=True)
+    shipped_at = models.DateTimeField(null=True)
+    canceled_at = models.DateTimeField(null=True)
 
     @property
     def created_at(self):
@@ -62,10 +72,10 @@ class Order(models.Model):
 
     @property
     def status_text(self):
-        return self.status_text_list[self.status - 1]
+        return self.status_text_list[self.status]
 
     def __str__(self):
-        return f"id: {self.pk} | {self.created_at} | status: {self.status}"
+        return f"id: {self.pk} | {self.created_at} | status: {self.status_text}"
 
 
 class OrderItem(models.Model):
