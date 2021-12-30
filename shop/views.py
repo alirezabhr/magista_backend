@@ -1,7 +1,7 @@
 import json
 
 from rest_framework.generics import get_object_or_404, ListCreateAPIView, DestroyAPIView, RetrieveAPIView, \
-    RetrieveUpdateAPIView, CreateAPIView
+    RetrieveUpdateAPIView, CreateAPIView, UpdateAPIView
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status, permissions
@@ -444,6 +444,13 @@ class ProductView(RetrieveUpdateAPIView):
 class PostPublicView(RetrieveAPIView):
     serializer_class = PostReadonlySerializer
     permission_classes = [AllowAny]
+    queryset = Post.objects.all()
+    lookup_url_kwarg = 'post_shortcode'
+    lookup_field = 'shortcode'
+
+
+class PostEditView(UpdateAPIView):
+    serializer_class = PostSerializer
     queryset = Post.objects.all()
     lookup_url_kwarg = 'post_shortcode'
     lookup_field = 'shortcode'

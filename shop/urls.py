@@ -12,6 +12,7 @@ urlpatterns = [
     path('<str:ig_username>/post/', views.ShopProductsPreviewView.as_view()),    # for customer
     path('<str:ig_username>/preview/', views.ShopPublicView.as_view(), name='shop-preview'),    # for customer
     path('post/<str:post_shortcode>/preview/', views.PostPublicView.as_view()),    # for customer and vendor
+    path('post/<str:post_shortcode>/', views.PostEditView.as_view()),    # for vendor
     path('product/', views.ShopProductView.as_view(), name='create-product'),    # for vendor
     path('product/tag/', views.ProductTagView.as_view()),    # for vendor
     path('product/<int:product_pk>/', views.ProductView.as_view()),    # for vendor
