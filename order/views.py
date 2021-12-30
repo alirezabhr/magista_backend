@@ -3,7 +3,7 @@ from django.utils import timezone
 from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework.generics import get_object_or_404
+from rest_framework.generics import get_object_or_404, ListAPIView
 
 from shop.models import Product, Shop
 from .models import Order, Invoice, OrderItem
@@ -65,24 +65,18 @@ class CartView(APIView):
         return Response(ser.data, status=status.HTTP_201_CREATED)
 
 
-class ShopOrdersView(APIView):
+class ShopOrdersView(ListAPIView):
     serializer_class = OrderRetrieveSerializer
-    query_set = Order.objects.all()
-
-    def get(self, request, shop_pk):
-        orders = self.query_set.filter(shop_id=shop_pk)
-        ser = self.serializer_class(orders, many=True)
-        return Response(ser.data, status=status.HTTP_200_OK)
+    queryset = Order.objects.all().order_by('id')
+    lookup_field = 'shop_id'
+    lookup_url_kwarg = 'shop_pk'
 
 
-class CustomerOrdersView(APIView):
+class CustomerOrdersView(ListAPIView):
     serializer_class = OrderRetrieveSerializer
-    query_set = Order.objects.all()
-
-    def get(self, request, customer_pk):
-        orders = self.query_set.filter(invoice__customer_id=customer_pk)
-        ser = self.serializer_class(orders, many=True)
-        return Response(ser.data, status=status.HTTP_200_OK)
+    queryset = Order.objects.all().order_by('id')
+    lookup_field = 'invoice__customer_id'
+    lookup_url_kwarg = 'customer_pk'
 
 
 class InvoiceView(APIView):
@@ -106,8 +100,18 @@ class OrderView(APIView):
                 'shop': order.shop.id,
                 'status': new_status,
             }
+            if new_status == Order.Status.SHIPPED:
+                payload['shipped_by'] = request.data['shipped_by']
         except KeyError:
             return Response(status=status.HTTP_400_BAD_REQUEST)
+
+        if new_status == Order.Status.VERIFIED:
+            payload['verified_at'] = timezone.now()
+        elif new_status == Order.Status.SHIPPED:
+            payload['shipped_at'] = timezone.now()
+        elif new_status == Order.Status.CANCELED:
+            payload['canceled_at'] = timezone.now()
+
         ser = self.serializer_class(order, data=payload)
         ser.is_valid(raise_exception=True)
         ser.save()
