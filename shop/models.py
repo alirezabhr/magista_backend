@@ -108,7 +108,7 @@ class Product(models.Model):
 
         if index == -1:
             return None
-        return sum_ / (index + 1)
+        return float("{:.1f}".format(sum_ / (index + 1)))
 
     @property
     def discount_percent(self):
