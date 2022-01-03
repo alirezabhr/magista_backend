@@ -18,7 +18,7 @@ class Shop(models.Model):
     address = models.TextField()
     wallet = models.IntegerField(default=0)  # Toman
     profile_pic = models.CharField(max_length=80, null=True)
-    commission_percent = models.SmallIntegerField()
+    commission_percent = models.SmallIntegerField(default=5)
     created_at = models.DateTimeField(auto_now_add=True)
 
     @property
