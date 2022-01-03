@@ -34,7 +34,7 @@ class Shop(models.Model):
     @property
     def remaining_amount(self):
         days = 2
-        return self.total_orders_price_before_n_days(days) - self.total_withdraw_before_n_days(days)
+        return self.total_orders_price_before_n_days(days) - self.total_withdraw()
 
     def withdrawal_amount(self):
         return (self.remaining_amount * (100 - self.commission_percent)) // 100
@@ -52,11 +52,10 @@ class Shop(models.Model):
             amount += order.total_price
         return amount
 
-    def total_withdraw_before_n_days(self, n_days):
-        """ returns total withdraw with this shop which paid before last n days """
+    def total_withdraw(self):
+        """ returns total withdraw with this shop """
         now = timezone.now()
-        delta = timezone.timedelta(days=n_days)
-        date_time_range = (self.created_at, now - delta)
+        date_time_range = (self.created_at, now)
         withdraw_query = Withdraw.objects.filter(shop=self, paid_at__range=date_time_range)
 
         amount = 0
@@ -73,6 +72,9 @@ class BankCredit(models.Model):
     sheba = models.CharField(max_length=30)
     first_name = models.CharField(max_length=60)
     last_name = models.CharField(max_length=60)
+
+    def __str__(self):
+        return f'{self.id}(shop: {self.shop.instagram_username} | {self.sheba})'
 
 
 class Post(models.Model):
