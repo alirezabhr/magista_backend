@@ -65,7 +65,7 @@ class Post(models.Model):
 
     @property
     def has_product(self):
-        return Product.objects.filter(image__post=self).exists()
+        return Product.objects.filter(image__post=self, is_deleted=False).exists()
 
     @property
     def product_images(self):
@@ -81,7 +81,7 @@ class ProductImage(models.Model):
 
     @property
     def products(self):
-        return Product.objects.filter(image=self)
+        return Product.objects.filter(image=self, is_deleted=False)
 
 
 class Product(models.Model):
@@ -90,6 +90,7 @@ class Product(models.Model):
     description = models.CharField(max_length=60, blank=True)
     original_price = models.PositiveIntegerField()
     is_existing = models.BooleanField(default=True)
+    is_deleted = models.BooleanField(default=False)
     updated_at = models.DateTimeField(auto_now=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
