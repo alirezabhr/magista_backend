@@ -5,7 +5,7 @@ from .models import Shop, Product, Discount, BankCredit, ProductAttribute, Produ
 
 class ShopSerializer(serializers.ModelSerializer):
     rate = serializers.ReadOnlyField()
-    withdrawal_amount = serializers.ReadOnlyField()
+    remaining_amount = serializers.ReadOnlyField()
     created_at = serializers.DateTimeField(format="%Y-%m-%d %H:%M:%S", read_only=True)
 
     class Meta:

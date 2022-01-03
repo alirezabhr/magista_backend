@@ -3,6 +3,7 @@ from django.utils import timezone
 from django.db import models
 
 from order.models import Order, OrderItem
+from payment.models import Withdraw
 from user.models import User
 
 
@@ -17,6 +18,7 @@ class Shop(models.Model):
     address = models.TextField()
     wallet = models.IntegerField(default=0)  # Toman
     profile_pic = models.CharField(max_length=80, null=True)
+    commission_percent = models.SmallIntegerField()
     created_at = models.DateTimeField(auto_now_add=True)
 
     @property
@@ -30,19 +32,36 @@ class Shop(models.Model):
         return rate_sum
 
     @property
-    def withdrawal_amount(self):
-        return self.wallet - self.before_n_days_orders_price(2)     # orders before last 2 days
+    def remaining_amount(self):
+        days = 2
+        return self.total_orders_price_before_n_days(days) - self.total_withdraw_before_n_days(days)
 
-    def before_n_days_orders_price(self, n_days):
-        """ returns paid orders of this shop which created in last n days """
+    def withdrawal_amount(self):
+        return (self.remaining_amount * (100 - self.commission_percent)) // 100
+
+    def total_orders_price_before_n_days(self, n_days):
+        """ returns total price of paid orders in this shop which created before last n days """
         now = timezone.now()
         delta = timezone.timedelta(days=n_days)
-        date_time_range = (self.created_at, now-delta)
+        date_time_range = (self.created_at, now - delta)
         order_status_range = (Order.Status.SHIPPED, Order.Status.RECEIVED)
-        order_query = Order.objects.filter(shop=self, status__range=order_status_range, invoice__created_at__range=date_time_range)
+        order_query = Order.objects.filter(shop=self, status__range=order_status_range,
+                                           invoice__created_at__range=date_time_range)
         amount = 0
         for order in order_query:
             amount += order.total_price
+        return amount
+
+    def total_withdraw_before_n_days(self, n_days):
+        """ returns total withdraw with this shop which paid before last n days """
+        now = timezone.now()
+        delta = timezone.timedelta(days=n_days)
+        date_time_range = (self.created_at, now - delta)
+        withdraw_query = Withdraw.objects.filter(shop=self, paid_at__range=date_time_range)
+
+        amount = 0
+        for withdraw in withdraw_query:
+            amount += withdraw.amount_without_commission
         return amount
 
     def __str__(self):
@@ -57,9 +76,9 @@ class BankCredit(models.Model):
 
 class Post(models.Model):
     shop = models.ForeignKey(Shop, models.PROTECT)
-    shortcode = models.CharField(max_length=15)     # this shortcode can create by backend
+    shortcode = models.CharField(max_length=15)  # this shortcode can create by backend
     description = models.TextField(blank=True)
-    instagram_link = models.CharField(max_length=70, blank=True)    # instagram shortcode
+    instagram_link = models.CharField(max_length=70, blank=True)  # instagram shortcode
     updated_at = models.DateTimeField(auto_now=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
