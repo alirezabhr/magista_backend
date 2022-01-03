@@ -8,7 +8,8 @@ from order.models import Invoice, Order
 from order.serializers import InvoiceSerializer
 from payment.models import PaymentInvoice, Withdraw
 from payment.serializers import PaymentInvoiceSerializer, PaymentResultSerializer, PaymentDetailSerializer, \
-    WithdrawSerializer, WithdrawRequestSerializer, WithdrawPublicSerializer
+    WithdrawSerializer, WithdrawPublicSerializer
+from shop.models import Shop, BankCredit
 
 from .services.pep import Pep, PepError
 from .services.pod import Pod, PodError, BankError
@@ -42,7 +43,7 @@ class PaymentView(APIView):
 
         data = {
             'invoice': invoice.id,
-            'amount': int(amount_rial),
+            'amount': int(amount_rial) // 10,  # amount changed to Toman
             'token': token
         }
         ser = self.serializer_class(data=data)
@@ -111,16 +112,30 @@ class PaymentView(APIView):
 
 class WithdrawView(APIView):
     serializer_class = WithdrawSerializer
-    request_serializer_class = WithdrawRequestSerializer
     public_serializer_class = WithdrawPublicSerializer
 
     def post(self, request):
-        pod = Pod()
-        ser = self.request_serializer_class(data=request.data)
-        ser.is_valid(raise_exception=True)
+        try:
+            shop_id = request.data['shop']
+            sheba_num = request.data['sheba']
+            shop = Shop.objects.get(pk=shop_id)
+            bank_credit = BankCredit.objects.get(shop_id=shop_id, sheba=sheba_num)
+        except (KeyError, Shop.DoesNotExist, BankCredit.DoesNotExist):
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+
+        paya_payload = {
+            'amount': shop.withdrawal_amount(),
+            'sheba': bank_credit.sheba,
+            'first_name': bank_credit.first_name,
+            'last_name': bank_credit.last_name,
+        }
+
+        if paya_payload['amount'] == 0:
+            return Response(status=status.HTTP_204_NO_CONTENT)
 
         try:
-            paya_response = pod.paya(request.data)
+            pod = Pod()
+            paya_response = pod.paya(paya_payload)
         except PodError as error:
             rsp = {'error': error.error, 'type': 'pod_error'}
             return Response(rsp, status=status.HTTP_503_SERVICE_UNAVAILABLE)
@@ -134,9 +149,10 @@ class WithdrawView(APIView):
         withdraw_data = {
             "shop": request.data['shop'],
             "pod_ref_num": paya_response['pod_ref_num'],
-            "amount": request.data['amount'],
-            "receiver_full_name": request.data['first_name'] + request.data['last_name'],
-            "destination_sheba": request.data['sheba'],
+            "paid_amount": shop.withdrawal_amount(),  # amount is Toman
+            "amount_without_commission": shop.remaining_amount,  # amount is Toman
+            "receiver_full_name": paya_payload['first_name'] + paya_payload['last_name'],
+            "destination_sheba": paya_payload['sheba'],
             "transaction_code": paya_response['bank_result']['Data'],
         }
         withdraw_ser = self.serializer_class(data=withdraw_data)
@@ -147,6 +163,7 @@ class WithdrawView(APIView):
         ser = self.public_serializer_class(withdraw)
 
         return Response(ser.data, status=status.HTTP_201_CREATED)
+
 
 """
 THIS VIEW WORKS WITH NEW PAYA API. WHICH HAS SOME BUGS.
