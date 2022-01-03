@@ -1,7 +1,7 @@
 import json
 
 from rest_framework.generics import get_object_or_404, ListCreateAPIView, DestroyAPIView, RetrieveAPIView, \
-    RetrieveUpdateAPIView, CreateAPIView, UpdateAPIView
+    RetrieveUpdateAPIView, CreateAPIView, UpdateAPIView, ListAPIView
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status, permissions
@@ -332,8 +332,14 @@ class ShopView(APIView):
         return Response(ser.data, status=status.HTTP_200_OK)
 
 
-class ShopPostView(APIView):
-    post_serializer_class = PostSerializer
+class ShopPostView(ListAPIView):
+    # GET Method
+    serializer_class = PostSerializer
+    queryset = Post.objects.all().order_by('id').reverse()
+    lookup_field = 'shop_id'
+    lookup_url_kwarg = 'shop_pk'
+
+    # POST Method
     product_image_serializer_class = ProductImageSerializer
 
     def post(self, request, shop_pk):  # pk is shop id
@@ -374,7 +380,7 @@ class ShopPostView(APIView):
             post_data["description"] = post_caption
             post_data["instagram_link"] = mq_item['shortcode']
 
-            post_serializer = self.post_serializer_class(data=post_data)
+            post_serializer = self.serializer_class(data=post_data)
             post_serializer.is_valid(raise_exception=True)
             post_serializer.save()
 
@@ -395,12 +401,6 @@ class ShopPostView(APIView):
 
         return Response(status=status.HTTP_200_OK)
 
-    def get(self, request, shop_pk):
-        shop = get_object_or_404(Shop, pk=shop_pk)
-        posts = Post.objects.filter(shop_id=shop.id)
-        ser = self.post_serializer_class(posts, many=True)
-        return Response(ser.data[::-1], status=status.HTTP_200_OK)
-
 
 class ShopProductView(CreateAPIView):
     serializer_class = ProductSerializer
@@ -420,10 +420,10 @@ class ShopProductsPreviewView(APIView):
     permission_classes = [AllowAny]
 
     def get(self, request, *args, **kwargs):
-        posts_list = Post.objects.filter(shop__instagram_username=kwargs['ig_username'])
+        posts_list = Post.objects.filter(shop__instagram_username=kwargs['ig_username']).order_by('id').reverse()
         posts_list = [p for p in posts_list if p.has_product]
         ser = self.serializer_class(posts_list, many=True)
-        return Response(ser.data[::-1], status=status.HTTP_200_OK)
+        return Response(ser.data, status=status.HTTP_200_OK)
 
 
 class ShopPublicView(RetrieveAPIView):
