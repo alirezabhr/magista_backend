@@ -409,10 +409,8 @@ class ShopProductView(CreateAPIView):
 class ShopBankCreditsView(ListCreateAPIView):
     serializer_class = BankCreditSerializer
     queryset = BankCredit.objects.all()
-
-    def get_queryset(self):
-        shop_pk = self.kwargs.get('shop_pk')
-        return self.queryset.filter(shop_id=shop_pk)
+    lookup_field = 'shop_id'
+    lookup_url_kwarg = 'shop_pk'
 
 
 class ShopProductsPreviewView(APIView):
