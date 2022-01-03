@@ -40,15 +40,7 @@ class WithdrawPublicSerializer(serializers.ModelSerializer):
     class Meta:
         model = Withdraw
         fields = [
-            'amount',
+            'paid_amount',
             'transaction_code',
             'paid_at',
         ]
-
-
-class WithdrawRequestSerializer(serializers.Serializer):
-    shop = serializers.IntegerField()
-    amount = serializers.IntegerField()
-    sheba = serializers.CharField(max_length=30)
-    first_name = serializers.CharField(max_length=40)
-    last_name = serializers.CharField(max_length=40)
