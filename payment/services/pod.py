@@ -93,6 +93,7 @@ class Pod:
         return json.loads(string)
 
     def paya(self, data):
+        # amount should be Toman
         amount = str(data['amount']) + '0'
         dest_deposit = ''
         dest_sheba = data['sheba']
