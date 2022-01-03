@@ -71,7 +71,8 @@ class Shop(models.Model):
 class BankCredit(models.Model):
     shop = models.ForeignKey(Shop, models.CASCADE)
     sheba = models.CharField(max_length=30)
-    full_name = models.CharField(max_length=60)
+    first_name = models.CharField(max_length=60)
+    last_name = models.CharField(max_length=60)
 
 
 class Post(models.Model):
