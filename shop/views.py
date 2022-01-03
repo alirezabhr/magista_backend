@@ -440,6 +440,12 @@ class ProductView(RetrieveUpdateAPIView):
     lookup_url_kwarg = 'product_pk'
     lookup_field = 'pk'
 
+    def delete(self, request, product_pk):
+        product = get_object_or_404(Product, pk=product_pk)
+        product.is_deleted = True
+        product.save()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
 
 class PostPublicView(RetrieveAPIView):
     serializer_class = PostReadonlySerializer
