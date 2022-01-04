@@ -135,7 +135,7 @@ class Product(models.Model):
 
     @property
     def discount_percent(self):
-        discount = Discount.objects.filter(product=self, is_active=True).last()
+        discount = Discount.objects.filter(product=self).last()
         if discount is None or discount.is_active is False:
             return 0
         return discount.percent
