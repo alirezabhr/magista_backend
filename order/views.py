@@ -67,16 +67,16 @@ class CartView(APIView):
 
 class ShopOrdersView(ListAPIView):
     serializer_class = OrderRetrieveSerializer
-    queryset = Order.objects.all().order_by('id')
-    lookup_field = 'shop_id'
-    lookup_url_kwarg = 'shop_pk'
+
+    def get_queryset(self):
+        return Order.objects.filter(shop_id=self.kwargs['shop_pk']).order_by('id')
 
 
 class CustomerOrdersView(ListAPIView):
     serializer_class = OrderRetrieveSerializer
-    queryset = Order.objects.all().order_by('id')
-    lookup_field = 'invoice__customer_id'
-    lookup_url_kwarg = 'customer_pk'
+
+    def get_queryset(self):
+        return Order.objects.filter(invoice__customer_id=self.kwargs['customer_pk']).order_by('id')
 
 
 class InvoiceView(APIView):

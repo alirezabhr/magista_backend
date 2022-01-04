@@ -335,9 +335,9 @@ class ShopView(APIView):
 class ShopPostView(ListAPIView):
     # GET Method
     serializer_class = PostSerializer
-    queryset = Post.objects.all().order_by('id').reverse()
-    lookup_field = 'shop_id'
-    lookup_url_kwarg = 'shop_pk'
+
+    def get_queryset(self):
+        return Post.objects.filter(shop_id=self.kwargs['shop_id']).order_by('id').reverse()
 
     # POST Method
     product_image_serializer_class = ProductImageSerializer
@@ -408,9 +408,9 @@ class ShopProductView(CreateAPIView):
 
 class ShopBankCreditsView(ListCreateAPIView):
     serializer_class = BankCreditSerializer
-    queryset = BankCredit.objects.all()
-    lookup_field = 'shop_id'
-    lookup_url_kwarg = 'shop_pk'
+
+    def get_queryset(self):
+        return BankCredit.objects.filter(shop_id=self.kwargs['shop_pk'])
 
 
 class ShopProductsPreviewView(APIView):
