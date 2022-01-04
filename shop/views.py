@@ -337,7 +337,7 @@ class ShopPostView(ListAPIView):
     serializer_class = PostSerializer
 
     def get_queryset(self):
-        return Post.objects.filter(shop_id=self.kwargs['shop_id']).order_by('id').reverse()
+        return Post.objects.filter(shop_id=self.kwargs['shop_pk']).order_by('id').reverse()
 
     # POST Method
     product_image_serializer_class = ProductImageSerializer
