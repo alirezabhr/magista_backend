@@ -35,6 +35,7 @@ class Scraper:
         self.login = False
         self.authenticated = False
         self.logged_in = False
+        self.is_getting_new_media = False
 
     def authenticate_with_login(self):
         """Logs in to instagram."""
@@ -107,48 +108,35 @@ class Scraper:
             }
             raise CustomException(503, error_data)
 
-    def query_media_gen(self, user_id, end_cursor=''):
+    def query_media_gen(self, user_id, last_post_shortcode, end_cursor=''):
         """Generator for media."""
-        media, end_cursor = self.__query_media(QUERY_MEDIA_VARS, user_id, end_cursor)
+        media, end_cursor = self.__query_media(user_id, end_cursor)
 
         if media:
             try:
                 while True:
                     for item in media:
-                        # if not self.is_new_media(item):
-                        #     return
-                        yield item
-
-                    if end_cursor:
-                        media, end_cursor = self.__query_media(QUERY_MEDIA_VARS, user_id, end_cursor)
-                    else:
-                        return
-            except ValueError:
-                logger('Failed to query media for user ' + user_id)
-                raise CustomException(503, 'Failed to query media for user ' + user_id)
-
-    def query_new_media_gen(self, last_post_shortcode, user_id, end_cursor=''):
-        """Generator for new instagram posts."""
-        media, end_cursor = self.__query_media(QUERY_NEW_MEDIA_VARS, user_id, end_cursor)
-
-        if media:
-            try:
-                while True:
-                    for item in media:
-                        if item['shortcode'] == last_post_shortcode:
+                        if item['shortcode'] == last_post_shortcode:  # post exits
                             return
                         yield item
 
                     if end_cursor:
-                        media, end_cursor = self.__query_media(QUERY_NEW_MEDIA_VARS, user_id, end_cursor)
+                        media, end_cursor = self.__query_media(user_id, end_cursor)
                     else:
                         return
             except ValueError:
                 logger('Failed to query media for user ' + user_id)
                 raise CustomException(503, 'Failed to query media for user ' + user_id)
 
-    def __query_media(self, qm_vars, ig_id, end_cursor=''):
-        params = qm_vars.format(ig_id, end_cursor)
+    @property
+    def __get_query_media_vars_constant(self):
+        if self.is_getting_new_media:
+            return QUERY_NEW_MEDIA_VARS
+        else:
+            return QUERY_MEDIA_VARS
+
+    def __query_media(self, ig_id, end_cursor=''):
+        params = self.__get_query_media_vars_constant.format(ig_id, end_cursor)
         self.update_ig_gis_header(params)
 
         resp = self.get_data(QUERY_MEDIA.format(params))
@@ -218,12 +206,8 @@ class Scraper:
 
         return nodes
 
-    def get_media_data(self, user):
-        posts = [post for post in self.query_media_gen(user_id=user['id'])]
-        return posts
-
-    def get_new_media_data(self, user_id, last_post_shortcode):
-        posts = [post for post in self.query_new_media_gen(last_post_shortcode, user_id=user_id)]
+    def get_media_data(self, user_id, last_post_shortcode):
+        posts = [post for post in self.query_media_gen(user_id=user_id, last_post_shortcode=last_post_shortcode)]
         return posts
 
 
@@ -258,14 +242,15 @@ def scrape_instagram_media(login_user, login_pass, username):
 
     write_user_profile_info_data(username, profile_info)
 
-    return scraper.get_media_data(profile_info)
+    return scraper.get_media_data(profile_info['id'], '')
 
 
 def scrape_new_instagram_media(login_user, login_pass, user_id, last_post_shortcode):
     scraper = Scraper(login_user=login_user, login_pass=login_pass)
     scraper.authenticate_with_login()
+    scraper.is_getting_new_media = True
 
-    return scraper.get_new_media_data(user_id, last_post_shortcode)
+    return scraper.get_media_data(user_id, last_post_shortcode)
 
 
 def write_user_profile_info_data(username, profile_info_data):
@@ -278,6 +263,27 @@ def write_user_media_query_data(username, user_posts_data):
     write_user_data(username, file_name, user_posts_data)
 
 
+def write_user_new_media_query_data(username, user_posts_data):
+    file_name = f'{username}_new_media_query.json'
+    write_user_data(username, file_name, user_posts_data)
+
+
+def read_user_media_query_data(username):
+    try:
+        file_name = f'{username}_media_query.json'
+        return read_user_data(username, file_name)
+    except Exception:
+        raise CustomException(503, "Can't get page preview data")
+
+
+def read_user_new_media_query_data(username):
+    try:
+        file_name = f'{username}_new_media_query.json'
+        return read_user_data(username, file_name)
+    except Exception:
+        raise CustomException(503, "Can't get page preview data")
+
+
 def write_user_data(username, file_name, data):
     file_dir = os.path.join(settings.MEDIA_ROOT, 'shop', username)
     file_name_path = os.path.join(file_dir, file_name)
@@ -288,11 +294,6 @@ def write_user_data(username, file_name, data):
     file = open(file_name_path, 'w', encoding='utf-8')
     file.write(json_media_data)
     file.close()
-
-
-def read_user_media_query_data(username):
-    file_name = f'{username}_media_query.json'
-    return read_user_data(username, file_name)
 
 
 def read_user_profile_info_data(username):
@@ -312,15 +313,10 @@ def read_user_data(username, file_name):
     return file_data
 
 
-def save_preview_images(username, page):
+def save_preview_images(username, page, post_preview_data):
     pagination_size = settings.SCRAPER_PAGINATION_SIZE
 
-    try:
-        post_preview_data = read_user_media_query_data(username)
-        posts_count = len(post_preview_data)
-    except Exception:
-        raise CustomException(503, "Can't get page preview data")
-
+    posts_count = len(post_preview_data)
     if page is None:
         pagination_size = posts_count
         page = 1
@@ -367,9 +363,8 @@ def save_profile_image(username):
     return user_info_data['profile_pic_url']
 
 
-def get_page_preview_data(username, page):
+def get_page_preview_data(username, page, file_data):
     pagination_size = settings.SCRAPER_PAGINATION_SIZE
-    file_data = read_user_media_query_data(username)
     posts_count = len(file_data)
     posts_return_data = []
 
