@@ -109,7 +109,7 @@ class Scraper:
 
     def query_media_gen(self, user_id, end_cursor=''):
         """Generator for media."""
-        media, end_cursor = self.__query_media(user_id, end_cursor)
+        media, end_cursor = self.__query_media(QUERY_MEDIA_VARS, user_id, end_cursor)
 
         if media:
             try:
@@ -120,15 +120,35 @@ class Scraper:
                         yield item
 
                     if end_cursor:
-                        media, end_cursor = self.__query_media(user_id, end_cursor)
+                        media, end_cursor = self.__query_media(QUERY_MEDIA_VARS, user_id, end_cursor)
                     else:
                         return
             except ValueError:
                 logger('Failed to query media for user ' + user_id)
                 raise CustomException(503, 'Failed to query media for user ' + user_id)
 
-    def __query_media(self, ig_id, end_cursor=''):
-        params = QUERY_MEDIA_VARS.format(ig_id, end_cursor)
+    def query_new_media_gen(self, last_post_shortcode, user_id, end_cursor=''):
+        """Generator for new instagram posts."""
+        media, end_cursor = self.__query_media(QUERY_NEW_MEDIA_VARS, user_id, end_cursor)
+
+        if media:
+            try:
+                while True:
+                    for item in media:
+                        if item['shortcode'] == last_post_shortcode:
+                            return
+                        yield item
+
+                    if end_cursor:
+                        media, end_cursor = self.__query_media(QUERY_NEW_MEDIA_VARS, user_id, end_cursor)
+                    else:
+                        return
+            except ValueError:
+                logger('Failed to query media for user ' + user_id)
+                raise CustomException(503, 'Failed to query media for user ' + user_id)
+
+    def __query_media(self, qm_vars, ig_id, end_cursor=''):
+        params = qm_vars.format(ig_id, end_cursor)
         self.update_ig_gis_header(params)
 
         resp = self.get_data(QUERY_MEDIA.format(params))
@@ -202,6 +222,10 @@ class Scraper:
         posts = [post for post in self.query_media_gen(user_id=user['id'])]
         return posts
 
+    def get_new_media_data(self, user_id, last_post_shortcode):
+        posts = [post for post in self.query_new_media_gen(last_post_shortcode, user_id=user_id)]
+        return posts
+
 
 def scrape_instagram_media(login_user, login_pass, username):
     scraper = Scraper(login_user=login_user, login_pass=login_pass)
@@ -235,6 +259,13 @@ def scrape_instagram_media(login_user, login_pass, username):
     write_user_profile_info_data(username, profile_info)
 
     return scraper.get_media_data(profile_info)
+
+
+def scrape_new_instagram_media(login_user, login_pass, user_id, last_post_shortcode):
+    scraper = Scraper(login_user=login_user, login_pass=login_pass)
+    scraper.authenticate_with_login()
+
+    return scraper.get_new_media_data(user_id, last_post_shortcode)
 
 
 def write_user_profile_info_data(username, profile_info_data):
