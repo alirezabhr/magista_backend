@@ -31,6 +31,7 @@ QUERY_LOCATION_VARS = '{{"id":"{0}","first":50,"after":"{1}"}}'
 
 QUERY_MEDIA = BASE_URL + 'graphql/query/?query_hash=42323d64886122307be10013ad2dcc44&variables={0}'
 QUERY_MEDIA_VARS = '{{"id":"{0}","first":50,"after":"{1}"}}'
+QUERY_NEW_MEDIA_VARS = '{{"id":"{0}","first":5,"after":"{1}"}}'
 
 MAX_CONCURRENT_DOWNLOADS = 5
 CONNECT_TIMEOUT = 90
