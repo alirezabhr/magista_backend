@@ -65,6 +65,30 @@ class ShopCreationRequestView(APIView):
         return Response(status=status.HTTP_201_CREATED)
 
 
+def get_free_scraper():
+    scrapers = Scraper.objects.filter(is_working=False)
+    count = 0
+    scraper_index = 0
+
+    if scrapers.count() == 0:
+        raise Exception('All Scrapers Are Working')
+
+    for i, scraper in enumerate(scrapers):
+        if i == 0:
+            count = scraper.scrape_count
+            scraper_index = i
+            continue
+        if scraper.scrape_count < count:
+            count = scraper.scrape_count
+            scraper_index = i
+
+    scraper = scrapers[scraper_index]
+    scraper.is_working = True
+    scraper.scrape_count += 1
+    scraper.save()
+    return scraper
+
+
 class ShopMediaQueryView(APIView):
     instagram_username = ""
     extra_posts = []
@@ -135,25 +159,6 @@ class ShopMediaQueryView(APIView):
             response["error"] = [f'مغازه {self.instagram_username} موجود است.']
             return Response(response, status=status.HTTP_400_BAD_REQUEST)
 
-        # scrapers = Scraper.objects.filter(is_working=False)
-        # count = 0
-        # scraper_index = 0
-        #
-        # for i, scraper in enumerate(scrapers):
-        #     if i == 0:
-        #         count = scraper.scrape_count
-        #         scraper_index = i
-        #         continue
-        #
-        #     if scraper.scrape_count < count:
-        #         count = scraper.scrape_count
-        #         scraper_index = i
-        #
-        # scraper = scrapers[scraper_index]
-        # scraper.is_working = True
-        # scraper.scrape_count += 1
-        # scraper.save()
-
         try:
             # data = scrape.scrape_instagram_media(scraper.username, scraper.password, self.instagram_username)
             # scrape.write_user_media_query_data(self.instagram_username, data)
@@ -190,8 +195,10 @@ class ShopMediaQueryView(APIView):
             page = int(page)
 
         try:
+            # posts_preview_data = scrape.read_user_media_query_data(instagram_username)
             # scrape.save_preview_images(self.instagram_username, page)
-            response_data = scrape.get_page_preview_data(self.instagram_username, page)
+            posts_preview_data = scrape.read_user_media_query_data(self.instagram_username)
+            response_data = scrape.get_page_preview_data(self.instagram_username, page, posts_preview_data)
             return Response(response_data, status=status.HTTP_200_OK)
         except scrape.CustomException as ex:
             response["error"] = [ex.message]
@@ -202,6 +209,153 @@ class ShopMediaQueryView(APIView):
 
     def put(self, request):
         """this method will remove extra post directories and extra post data from json file"""
+        response = {}
+
+        try:
+            self.instagram_username = request.query_params['instagram_username']
+            self.extra_posts = request.data['extra_posts']
+            user_pk = request.data['user_id']
+        except KeyError:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            Shop.objects.get(instagram_username=self.instagram_username, vendor_id=user_pk)
+        except Shop.DoesNotExist:
+            response["error"] = ["shop not found"]
+            return Response(response, status=status.HTTP_404_NOT_FOUND)
+
+        self.__remove_extra_posts_dirs_and_images()
+        self.__remove_extra_posts_media_query()
+
+        return Response(status=status.HTTP_200_OK)
+
+
+class ShopMediaQueryNewPostsView(APIView):
+    instagram_username = ""
+    extra_posts = []
+
+    def __remove_extra_posts_dirs_and_images(self):
+        """remove new extra posts directory and images in media root for an instagram online shop"""
+
+        removed_parents_id = []
+        for extra_post in self.extra_posts[::-1]:  # reverse it because it's like stack, and want to pop
+            if not extra_post.get('parent'):
+                # it doesn't have parent so it is parent post
+                pid = extra_post.get('id')
+                self.__remove_extra_posts_dirs(pid)
+                removed_parents_id.append(pid)
+            else:
+                # it's child post
+                if extra_post.get('parent') not in removed_parents_id:
+                    # its parent post was not removed
+                    self.__remove_extra_posts_dirs(extra_post.get('parent'), extra_post.get('id'))
+
+    def __remove_extra_posts_dirs(self, *dirs):
+        """remove extra posts directory and directory contents in media root for an instagram online shop"""
+
+        try:
+            utils.remove_shop_media_directory(self.instagram_username, *dirs)
+        except OSError as e:
+            print(f"Error: {e.filename} - {e.strerror}.")
+
+    def __remove_extra_posts_media_query(self):
+        """remove extra posts data from media query json file of an instagram page"""
+
+        media_query_data = scrape.read_user_new_media_query_data(self.instagram_username)
+
+        for extra_post in self.extra_posts[::-1]:
+            """it should be reversed because extra_posts list is like stack,
+            and it is possible to remove a parent before removing its child when it is reversed.
+            So complexity will be reduced and function finished faster"""
+            if not extra_post.get('parent'):
+                # it was a parent post
+                for mq in media_query_data:
+                    if mq['id'] == extra_post['id']:
+                        media_query_data.remove(mq)
+                        break
+            else:
+                # it was a child post
+                for parent in media_query_data:
+                    if parent['id'] == extra_post['parent']:
+                        for child in parent['children']:
+                            if child['id'] == extra_post['id']:
+                                parent['children'].remove(child)
+                                break
+                        break
+
+        scrape.write_user_new_media_query_data(self.instagram_username, media_query_data)
+
+    def post(self, request):
+        """this method will scrape user instagram page, and get new posts query_media data.
+            next it will add them in the query media json file"""
+        response = {}
+
+        try:
+            instagram_username = request.query_params['instagram_username']
+            shop = get_object_or_404(Shop, instagram_username=instagram_username)
+            last_post = Post.objects.filter(shop_id=shop.id).last()
+            if last_post is None:  # shop does not exists or doesn't have any posts
+                return Response(status=status.HTTP_400_BAD_REQUEST)
+            last_post_shortcode = last_post.shortcode
+        except KeyError:
+            response["error"] = ['آیدی پیج اینستاگرام الزامی است.']
+            return Response(response, status=status.HTTP_400_BAD_REQUEST)
+
+        # find scraper
+        try:
+            scraper = get_free_scraper()
+        except Exception as exc:
+            return Response({"error": str(exc)}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+
+        try:
+            data = scrape.scrape_new_instagram_media(scraper.username, scraper.password, shop.instagram_id,
+                                                     last_post_shortcode)
+            scrape.write_user_new_media_query_data(instagram_username, data)
+            scraper.is_working = False
+            scraper.save()
+            return Response(data, status=status.HTTP_200_OK)
+        except scrape.CustomException as ex:
+            response["error"] = [ex.message]
+            response["type"] = 'scraper error'
+            scraper.is_working = False
+            scraper.save()
+            return Response(response, status=ex.status)
+        except Exception as exc:
+            response["error"] = [str(exc)]
+            response["type"] = 'system error'
+            scraper.is_working = False
+            scraper.save()
+            return Response(response, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    def get(self, request):
+        """this method will download new preview images of user instagram page
+        from new media query json file. and save them in specific directory"""
+        response = {}
+
+        try:
+            instagram_username = request.query_params['instagram_username']
+        except KeyError:
+            response["error"] = ['آیدی پیج اینستاگرام الزامی است.']
+            return Response(response, status=status.HTTP_400_BAD_REQUEST)
+
+        page = request.query_params.get('page')
+        if page is not None:
+            page = int(page)
+
+        try:
+            posts_preview_data = scrape.read_user_new_media_query_data(instagram_username)
+            scrape.save_preview_images(instagram_username, page, posts_preview_data)
+            response_data = scrape.get_page_preview_data(instagram_username, page, posts_preview_data)
+            return Response(response_data, status=status.HTTP_200_OK)
+        except scrape.CustomException as ex:
+            response["error"] = [ex.message]
+            return Response(response, status=ex.status)
+        except Exception as exc:
+            response["error"] = [str(exc)]
+            return Response(response, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    def put(self, request):
+        """this method will remove new extra post directories and new extra post data from json file"""
         response = {}
 
         try:
@@ -234,24 +388,11 @@ class SaveMediaView(APIView):
         except KeyError:
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
-        scrapers = Scraper.objects.filter(is_working=False)
-        count = 0
-        scraper_index = 0
-
-        for i, scraper in enumerate(scrapers):
-            if i == 0:
-                count = scraper.scrape_count
-                scraper_index = i
-                continue
-
-            if scraper.scrape_count < count:
-                count = scraper.scrape_count
-                scraper_index = i
-
-        scraper = scrapers[scraper_index]
-        scraper.is_working = True
-        scraper.scrape_count += 1
-        scraper.save()
+        # find scraper
+        try:
+            scraper = get_free_scraper()
+        except Exception as exc:
+            return Response({"error": str(exc)}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
 
         try:
             data = scrape.scrape_instagram_media(scraper.username, scraper.password, instagram_username)
@@ -273,9 +414,10 @@ class SaveMediaView(APIView):
 
         has_next = True
         page = 1
+        posts_preview_data = scrape.read_user_media_query_data(instagram_username)
         while has_next:
-            scrape.save_preview_images(instagram_username, page)
-            response_data = scrape.get_page_preview_data(instagram_username, page)
+            scrape.save_preview_images(instagram_username, page, posts_preview_data)
+            response_data = scrape.get_page_preview_data(instagram_username, page, posts_preview_data)
             has_next = response_data['has_next']
             page += 1
 
@@ -394,7 +536,8 @@ class ShopPostView(ListAPIView):
                 if index == 0:
                     continue
                 product_image_data["post"] = post_serializer.data.get('id')
-                product_image_data["display_image"] = f"media/shop/{instagram_username}/{mq_item['id']}/{child['id']}/display_image.jpg "
+                product_image_data[
+                    "display_image"] = f"media/shop/{instagram_username}/{mq_item['id']}/{child['id']}/display_image.jpg "
                 product_image_ser = self.product_image_serializer_class(data=product_image_data)
                 product_image_ser.is_valid(raise_exception=True)
                 product_image_ser.save()
