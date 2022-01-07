@@ -118,6 +118,29 @@ class OrderView(APIView):
         return Response(ser.data, status=status.HTTP_200_OK)
 
 
+class OrderRateView(APIView):
+    serializer_class = OrderSerializer
+    # TODO need a permission to check if the user is the customer in Order or not
+
+    def post(self, request, order_pk):   # rate order
+        order = get_object_or_404(Order, pk=order_pk)
+        try:
+            rate = request.data['rate']
+        except KeyError:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+
+        payload = {
+            'invoice': order.invoice.id,
+            'shop': order.shop.id,
+            'status': order.status,
+            'rate': rate,
+        }
+        ser = self.serializer_class(order, data=payload)
+        ser.is_valid(raise_exception=True)
+        ser.save()
+        return Response(ser.data, status=status.HTTP_200_OK)
+
+
 class ShopStatsView(APIView):
     serializer_class = OrderItemDateTimeSerializer
 
