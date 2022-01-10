@@ -549,6 +549,73 @@ class ShopPostView(ListAPIView):
         return Response(status=status.HTTP_200_OK)
 
 
+class ShopNewPostView(APIView):
+    serializer_class = PostSerializer
+    product_image_serializer_class = ProductImageSerializer
+
+    def post(self, request, shop_pk):  # pk is shop id
+        """create new posts and product images with new_media_query json file"""
+        response = {}
+
+        shop = get_object_or_404(Shop, pk=shop_pk)
+
+        try:
+            shop_id = shop.pk
+            instagram_username = request.data['instagram_username']
+            shop = Shop.objects.get(pk=shop_id, instagram_username=instagram_username)
+        except KeyError:
+            response["error"] = ["آیدی فروشگاه ضروری است."]
+            return Response(response, status=status.HTTP_400_BAD_REQUEST)
+        except Shop.DoesNotExist:
+            response["error"] = ["فروشگاه پیدا نشد."]
+            return Response(response, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            media_query = scrape.read_user_new_media_query_data(instagram_username)
+        except Exception as exc:
+            response["error"] = [str(exc)]
+            return Response(response, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        post_data = {}
+        product_image_data = {}
+        print(shop)
+        print(media_query)
+
+        for mq_item in media_query[::-1]:  # it should be reversed to create older instagram posts first
+            if 'edge_media_to_caption' in mq_item and 'edges' in mq_item['edge_media_to_caption'] and len(
+                    mq_item['edge_media_to_caption']['edges']) > 0:
+                post_caption = mq_item['edge_media_to_caption']['edges'][0]['node']['text']
+            else:
+                post_caption = ''
+
+            post_data["shop"] = shop.pk
+            post_data["shortcode"] = mq_item['shortcode']
+            post_data["description"] = post_caption
+            post_data["instagram_link"] = mq_item['shortcode']
+
+            post_serializer = self.serializer_class(data=post_data)
+            post_serializer.is_valid(raise_exception=True)
+            post_serializer.save()
+
+            product_image_data["post"] = post_serializer.data.get('id')
+            product_image_data["display_image"] = f"media/shop/{instagram_username}/{mq_item['id']}/display_image.jpg"
+            product_image_ser = self.product_image_serializer_class(data=product_image_data)
+            product_image_ser.is_valid(raise_exception=True)
+            product_image_ser.save()
+
+            for index, child in enumerate(mq_item["children"]):
+                if index == 0:
+                    continue
+                product_image_data["post"] = post_serializer.data.get('id')
+                product_image_data[
+                    "display_image"] = f"media/shop/{instagram_username}/{mq_item['id']}/{child['id']}/display_image.jpg "
+                product_image_ser = self.product_image_serializer_class(data=product_image_data)
+                product_image_ser.is_valid(raise_exception=True)
+                product_image_ser.save()
+
+        return Response(status=status.HTTP_200_OK)
+
+
 class ShopProductView(CreateAPIView):
     serializer_class = ProductSerializer
 
