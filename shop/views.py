@@ -308,6 +308,9 @@ class ShopMediaQueryNewPostsView(APIView):
         except Exception as exc:
             return Response({"error": str(exc)}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
 
+        shop.last_scrape = timezone.now()
+        shop.save()
+
         try:
             data = scrape.scrape_new_instagram_media(scraper.username, scraper.password, shop.instagram_id,
                                                      last_post_shortcode)
