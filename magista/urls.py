@@ -18,6 +18,8 @@ from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import path, include
 
+from magista import views
+
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('user/', include('user.urls')),
@@ -25,6 +27,9 @@ urlpatterns = [
     path('order/', include('order.urls')),
     path('payment/', include('payment.urls')),
     path('logger/', include('logger.urls')),
+    path('homepage-images-url/', views.homepage_images_url),
+    path('newest-products/', views.NewestProductsView.as_view()),
+    path('discounted-products/', views.DiscountedProductsView.as_view()),
 ]
 
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
