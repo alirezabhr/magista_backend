@@ -19,7 +19,7 @@ class Shop(models.Model):
     wallet = models.IntegerField(default=0)  # Toman
     profile_pic = models.CharField(max_length=80, null=True)
     commission_percent = models.SmallIntegerField(default=5)
-    last_scrape = models.DateTimeField()
+    last_scrape = models.DateTimeField(auto_now_add=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     @property
