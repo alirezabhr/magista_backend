@@ -661,12 +661,3 @@ class ProductTagView(CreateAPIView):
         ser.is_valid(raise_exception=True)
         ser.save()
         return Response(ser.data, status=status.HTTP_200_OK)
-
-
-class NewestProductsView(ListAPIView):
-    serializer_class = PostReadonlySerializer
-    permission_classes = [AllowAny]
-
-    def get_queryset(self):
-        posts = list(filter(lambda p: p.has_product, Post.objects.all()))
-        return posts[:10]

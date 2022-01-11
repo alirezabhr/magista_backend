@@ -21,5 +21,4 @@ urlpatterns = [
     path('product/<int:product_pk>/discount/', views.ProductDiscountView.as_view()),     # for vendor
     path('product/<int:product_pk>/attribute/', views.ProductAttributeCreateView.as_view()),     # for vendor
     path('product/<int:product_pk>/attribute/<int:pk>/', views.ProductAttributeDeleteView.as_view()),     # for vendor
-    path('product/newest/', views.NewestProductsView.as_view()),
 ]
