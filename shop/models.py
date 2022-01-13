@@ -143,10 +143,9 @@ class Product(models.Model):
 
     @property
     def discount_amount(self):
-        discount = Discount.objects.filter(product=self).last()
-        if discount is None or discount.is_active is False:
-            return 0
-        return discount.amount
+        if self.discount_percent:
+            return self.original_price - ((self.original_price * (100 - self.discount_percent)) // 100)
+        return 0
 
     @property
     def discount_description(self):
@@ -182,7 +181,6 @@ class ProductAttribute(models.Model):
 class Discount(models.Model):
     product = models.ForeignKey(Product, models.PROTECT, null=True)
     percent = models.PositiveSmallIntegerField()
-    amount = models.PositiveIntegerField()
     description = models.CharField(max_length=300, blank=True)
     is_active = models.BooleanField(default=True)
     # start_at = models.DateTimeField()
