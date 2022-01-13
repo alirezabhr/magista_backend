@@ -58,7 +58,7 @@ class ShopCreationRequestView(APIView):
         ser.save()
 
         try:
-            SMSService().send_otp(phone='09174347638', otp=0)
+            SMSService().shop_request_sms()
         except Exception as e:
             print(e)
             return Response(status=status.HTTP_503_SERVICE_UNAVAILABLE)
@@ -543,15 +543,13 @@ class ShopBankCreditsView(ListCreateAPIView):
         return BankCredit.objects.filter(shop_id=self.kwargs['shop_pk'])
 
 
-class ShopProductsPreviewView(APIView):
+class ShopProductsPreviewView(ListAPIView):
     serializer_class = PostReadonlySerializer
     permission_classes = [AllowAny]
 
-    def get(self, request, *args, **kwargs):
-        posts_list = Post.objects.filter(shop__instagram_username=kwargs['ig_username']).order_by('id').reverse()
-        posts_list = [p for p in posts_list if p.has_product]
-        ser = self.serializer_class(posts_list, many=True)
-        return Response(ser.data, status=status.HTTP_200_OK)
+    def get_queryset(self):
+        qs = Post.objects.filter(shop__instagram_username=self.kwargs['ig_username']).order_by('id').reverse()
+        return [p for p in qs if p.has_product]
 
 
 class ShopPublicView(RetrieveAPIView):
