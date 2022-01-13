@@ -396,6 +396,27 @@ class ShopView(APIView):
         return Response(ser.data, status=status.HTTP_200_OK)
 
 
+class ShopInflationView(APIView):
+
+    def increase_price(self, price, percent):
+        price = (price * (100+percent)) // 100
+        price = (price // 100) * 100    # 12387 -> 12300
+        return price
+
+    def post(self, request, shop_pk):
+        percent = request.data.get('percent')
+        if percent is None:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+
+        shop = get_object_or_404(Shop, id=shop_pk)
+        products = Product.objects.filter(image__post__shop=shop)
+        for product in products:
+            product.original_price = self.increase_price(product.original_price, percent)
+            product.save()
+
+        return Response(status=status.HTTP_200_OK)
+
+
 class ShopPostView(ListAPIView):
     # GET Method
     serializer_class = PostSerializer
