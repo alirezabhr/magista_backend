@@ -10,6 +10,7 @@ from payment.models import PaymentInvoice, Withdraw
 from payment.serializers import PaymentInvoiceSerializer, PaymentResultSerializer, PaymentDetailSerializer, \
     WithdrawSerializer, WithdrawPublicSerializer
 from shop.models import Shop, BankCredit
+from sms_service.sms_service import SMSService
 
 from .services.pep import Pep, PepError
 from .services.pod import Pod, PodError, BankError
@@ -84,16 +85,6 @@ class PaymentView(APIView):
             rsp = {'error': [error.error_message]}
             return Response(rsp, status=status.HTTP_503_SERVICE_UNAVAILABLE)
 
-        paid_orders = Order.objects.filter(invoice_id=invoice_num)
-        for order in paid_orders:
-            order.status = Order.Status.PAID
-            order.paid_at = timezone.now()
-            order.save()
-            # insert order total price in shop wallet
-            shop = order.shop
-            shop.wallet += order.total_price
-            shop.save()
-
         payment_invoice = PaymentInvoice.objects.get(invoice=int(invoice_num))
         payment_detail = {
             'payment_invoice': payment_invoice.pk,
@@ -106,6 +97,16 @@ class PaymentView(APIView):
         ser = PaymentDetailSerializer(data=payment_detail)
         ser.is_valid(raise_exception=True)
         ser.save()
+
+        paid_orders = Order.objects.filter(invoice_id=invoice_num)
+        for order in paid_orders:
+            order.status = Order.Status.PAID
+            order.paid_at = timezone.now()
+            order.save()
+            try:
+                SMSService().order_sms(order.shop.vendor.phone)
+            except:
+                pass    # TODO should log an issue
 
         return Response(ser.data, status=status.HTTP_202_ACCEPTED)
 
