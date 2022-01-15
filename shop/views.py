@@ -614,7 +614,7 @@ class PostProductImagesPublicView(ListAPIView):
     permission_classes = [AllowAny]
 
     def get_queryset(self):
-        return ProductImage.objects.filter(post__shortcode=self.kwargs['post_shortcode'])
+        return ProductImage.objects.filter(post__shortcode=self.kwargs['post_shortcode']).order_by('id')
 
 
 class PostEditView(UpdateAPIView):
