@@ -24,6 +24,7 @@ class ShopPublicSerializer(serializers.ModelSerializer):
     created_at = serializers.DateTimeField(format="%Y-%m-%d %H:%M:%S", read_only=True)
 
     class Meta:
+        model = Shop
         fields = [
             'id',
             'instagram_username',
@@ -33,7 +34,6 @@ class ShopPublicSerializer(serializers.ModelSerializer):
             'rate',
             'created_at',
         ]
-        model = Shop
 
 
 class TagLocationSerializer(serializers.ModelSerializer):
@@ -113,36 +113,26 @@ class ProductImageReadonlySerializer(serializers.ModelSerializer):
 
 
 class PostSerializer(serializers.ModelSerializer):
-    product_images = ProductImageReadonlySerializer(read_only=True, many=True)
     has_product = serializers.ReadOnlyField()
+    preview_image = serializers.ReadOnlyField()
     updated_at = serializers.DateTimeField(format="%Y-%m-%d %H:%M:%S", read_only=True)
     created_at = serializers.DateTimeField(format="%Y-%m-%d %H:%M:%S", read_only=True)
 
     class Meta:
         model = Post
         fields = '__all__'
-
-    def to_representation(self, instance):
-        response = super().to_representation(instance)
-        response["product_images"] = sorted(response["product_images"], key=lambda x: x["id"])
-        return response
 
 
 class PostReadonlySerializer(serializers.ModelSerializer):
-    product_images = ProductImageReadonlySerializer(read_only=True, many=True)
     shop = ShopPublicSerializer(read_only=True)
     has_product = serializers.ReadOnlyField()
+    preview_image = serializers.ReadOnlyField()
     updated_at = serializers.DateTimeField(format="%Y-%m-%d %H:%M:%S", read_only=True)
     created_at = serializers.DateTimeField(format="%Y-%m-%d %H:%M:%S", read_only=True)
 
     class Meta:
         model = Post
         fields = '__all__'
-
-    def to_representation(self, instance):
-        response = super().to_representation(instance)
-        response["product_images"] = sorted(response["product_images"], key=lambda x: x["id"])
-        return response
 
 
 class DiscountSerializer(serializers.ModelSerializer):

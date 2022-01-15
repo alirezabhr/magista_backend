@@ -93,9 +93,6 @@ class Post(models.Model):
     @property
     def preview_image(self):
         return ProductImage.objects.filter(post=self).first().display_image
-    # @property
-    # def product_images(self):
-    #     return ProductImage.objects.filter(post=self)
 
     def __str__(self):
         return f"{self.pk}: {self.shop.instagram_username} | {self.shortcode}"
