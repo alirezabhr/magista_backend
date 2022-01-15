@@ -69,7 +69,7 @@ class Shop(models.Model):
 
 
 class BankCredit(models.Model):
-    shop = models.ForeignKey(Shop, models.CASCADE)
+    shop = models.ForeignKey(Shop, models.CASCADE, related_name='shop_credit_cards')
     sheba = models.CharField(max_length=30)
     first_name = models.CharField(max_length=60)
     last_name = models.CharField(max_length=60)
@@ -79,7 +79,7 @@ class BankCredit(models.Model):
 
 
 class Post(models.Model):
-    shop = models.ForeignKey(Shop, models.PROTECT)
+    shop = models.ForeignKey(Shop, models.PROTECT, related_name='shop_posts')
     shortcode = models.CharField(max_length=15)  # this shortcode can create by backend
     description = models.TextField(blank=True)
     instagram_link = models.CharField(max_length=70, blank=True)  # instagram shortcode
@@ -91,15 +91,18 @@ class Post(models.Model):
         return Product.objects.filter(image__post=self, is_deleted=False).exists()
 
     @property
-    def product_images(self):
-        return ProductImage.objects.filter(post=self)
+    def preview_image(self):
+        return ProductImage.objects.filter(post=self).first().display_image
+    # @property
+    # def product_images(self):
+    #     return ProductImage.objects.filter(post=self)
 
     def __str__(self):
         return f"{self.pk}: {self.shop.instagram_username} | {self.shortcode}"
 
 
 class ProductImage(models.Model):
-    post = models.ForeignKey(Post, models.PROTECT)
+    post = models.ForeignKey(Post, models.PROTECT, related_name='post_product_images')
     display_image = models.CharField(max_length=120, null=True)
 
     @property
@@ -108,7 +111,7 @@ class ProductImage(models.Model):
 
 
 class Product(models.Model):
-    image = models.ForeignKey(ProductImage, models.PROTECT)
+    image = models.ForeignKey(ProductImage, models.PROTECT, related_name='product_image_products')
     title = models.CharField(max_length=40, blank=True)
     description = models.CharField(max_length=60, blank=True)
     original_price = models.PositiveIntegerField()
@@ -167,19 +170,19 @@ class Product(models.Model):
 
 
 class TagLocation(models.Model):
-    product = models.OneToOneField(Product, models.CASCADE)
+    product = models.OneToOneField(Product, models.CASCADE, related_name='product_tag')
     x = models.SmallIntegerField(default=50)
     y = models.SmallIntegerField(default=50)
 
 
 class ProductAttribute(models.Model):
-    product = models.ForeignKey(Product, models.CASCADE)
+    product = models.ForeignKey(Product, models.CASCADE, related_name='product_attributes')
     name = models.CharField(max_length=30)
     value = models.CharField(max_length=50)
 
 
 class Discount(models.Model):
-    product = models.ForeignKey(Product, models.PROTECT, null=True)
+    product = models.ForeignKey(Product, models.PROTECT, null=True, related_name='product_discount')
     percent = models.PositiveSmallIntegerField()
     description = models.CharField(max_length=300, blank=True)
     is_active = models.BooleanField(default=True)
