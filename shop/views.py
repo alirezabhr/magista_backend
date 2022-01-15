@@ -7,12 +7,13 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status, permissions
 from rest_framework.permissions import AllowAny, IsAdminUser
+from rest_framework.pagination import PageNumberPagination
 
 from sms_service.sms_service import SMSService
-from .models import Shop, Product, BankCredit, ProductAttribute, Post, Discount, TagLocation
+from .models import Shop, Product, BankCredit, ProductAttribute, Post, Discount, TagLocation, ProductImage
 from .serializers import ShopSerializer, ProductSerializer, ShopPublicSerializer, DiscountSerializer, \
     BankCreditSerializer, ProductAttributeSerializer, PostSerializer, \
-    ProductImageSerializer, PostReadonlySerializer, TagLocationSerializer
+    ProductImageSerializer, PostReadonlySerializer, TagLocationSerializer, ProductImageReadonlySerializer
 from logger.serializers import IssueSerializer
 
 from scraping.models import Scraper
@@ -37,6 +38,11 @@ class IsShopOwnerOrReadOnly(permissions.BasePermission):
     #     if request.method in permissions.SAFE_METHODS:
     #         return True
     #     return False
+
+
+class PostsListPagination(PageNumberPagination):
+    page_size = 12
+    page_size_query_param = 'page_size'
 
 
 # Create your views here.
@@ -567,6 +573,7 @@ class ShopBankCreditsView(ListCreateAPIView):
 class ShopProductsPreviewView(ListAPIView):
     serializer_class = PostReadonlySerializer
     permission_classes = [AllowAny]
+    # pagination_class = PostsListPagination
 
     def get_queryset(self):
         qs = Post.objects.filter(shop__instagram_username=self.kwargs['ig_username']).order_by('id').reverse()
@@ -600,6 +607,14 @@ class PostPublicView(RetrieveAPIView):
     queryset = Post.objects.all()
     lookup_url_kwarg = 'post_shortcode'
     lookup_field = 'shortcode'
+
+
+class PostProductImagesPublicView(ListAPIView):
+    serializer_class = ProductImageReadonlySerializer
+    permission_classes = [AllowAny]
+
+    def get_queryset(self):
+        return ProductImage.objects.filter(post__shortcode=self.kwargs['post_shortcode'])
 
 
 class PostEditView(UpdateAPIView):
