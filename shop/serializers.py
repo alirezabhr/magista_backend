@@ -52,6 +52,7 @@ class ProductSerializer(serializers.ModelSerializer):
     updated_at = serializers.DateTimeField(format="%Y-%m-%d %H:%M:%S", read_only=True)
     created_at = serializers.DateTimeField(format="%Y-%m-%d %H:%M:%S", read_only=True)
     attributes = ProductAttributeSerializer(read_only=True, many=True)
+    post_shortcode = serializers.ReadOnlyField()
     rate = serializers.ReadOnlyField()
     final_price = serializers.ReadOnlyField()
     discount_percent = serializers.ReadOnlyField()
@@ -65,6 +66,7 @@ class ProductSerializer(serializers.ModelSerializer):
 
 class ProductReadonlySerializer(serializers.ModelSerializer):
     attributes = ProductAttributeSerializer(read_only=True, many=True)
+    post_shortcode = serializers.ReadOnlyField()
     rate = serializers.ReadOnlyField()
     tag = TagLocationSerializer(read_only=True)
     shop = serializers.SerializerMethodField('get_shop')
@@ -78,6 +80,7 @@ class ProductReadonlySerializer(serializers.ModelSerializer):
             'description',
             'image',
             'rate',
+            'post_shortcode',
             'original_price',
             'discount_percent',
             'attributes',

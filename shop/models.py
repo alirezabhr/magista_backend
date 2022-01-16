@@ -162,6 +162,10 @@ class Product(models.Model):
     def tag(self):
         return TagLocation.objects.get(product=self)
 
+    @property
+    def post_shortcode(self):
+        return self.image.post.shortcode
+
     def __str__(self):
         return f"{self.pk}: {self.image.post.shop.instagram_username} - {self.title}"
 
