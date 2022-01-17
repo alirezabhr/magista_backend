@@ -9,14 +9,14 @@ from user.models import User
 
 # Create your models here.
 class Shop(models.Model):
-    vendor = models.ForeignKey(User, on_delete=models.CASCADE)
+    vendor = models.ForeignKey(User, on_delete=models.CASCADE, related_name='shop_vendor')
     email = models.EmailField()
     instagram_username = models.CharField(max_length=30, unique=True)
     instagram_id = models.BigIntegerField(unique=True)
     province = models.CharField(max_length=30)
     city = models.CharField(max_length=30)
     address = models.TextField()
-    wallet = models.IntegerField(default=0)  # Toman
+    bio = models.CharField(max_length=400, blank=True)
     profile_pic = models.CharField(max_length=80, null=True)
     commission_percent = models.SmallIntegerField(default=5)
     last_scrape = models.DateTimeField(auto_now_add=True)
