@@ -32,6 +32,9 @@ class ShopPublicSerializer(serializers.ModelSerializer):
             'city',
             'profile_pic',
             'rate',
+            'bio',
+            'delivery',
+            'preparation',
             'created_at',
         ]
 
