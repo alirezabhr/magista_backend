@@ -14,6 +14,9 @@ class Shop(models.Model):
         IN_CITY = 1
         IN_COUNTRY = 2
 
+    # class PreparationTime(models.IntegerChoices):
+    #     pass
+
     vendor = models.ForeignKey(User, on_delete=models.CASCADE, related_name='shop_vendor')
     email = models.EmailField()
     instagram_username = models.CharField(max_length=30, unique=True)
@@ -22,7 +25,8 @@ class Shop(models.Model):
     city = models.CharField(max_length=30)
     address = models.TextField()
     bio = models.CharField(max_length=400, blank=True)
-    delivery = models.IntegerField(choices=FreeDelivery.choices, default=FreeDelivery.NOT_FREE)
+    delivery = models.IntegerField(choices=FreeDelivery.choices)
+    # preparation = models.IntegerField(choices=PreparationTime.choices)
     profile_pic = models.CharField(max_length=80, null=True)
     commission_percent = models.SmallIntegerField(default=5)
     last_scrape = models.DateTimeField(auto_now_add=True)
