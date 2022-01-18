@@ -9,6 +9,7 @@ urlpatterns = [
     path('save-media/', views.SaveMediaView.as_view(), name='save-media'),
     path('<int:vendor_pk>/', views.ShopView.as_view(), name='create-shop'),   # for vendor
     # inflation endpoint is for vendors (increases price on all products)
+    path('<int:shop_pk>/bio/', views.ShopBioView.as_view(), name='shop-bio'),
     path('<int:shop_pk>/inflation/', views.ShopInflationView.as_view(), name='shop-inflation'),
     # path('<int:shop_pk>/discount/', views.ShopDiscountView.as_view()),     # for vendor
     path('<int:shop_pk>/post/', views.ShopPostView.as_view(), name='create-all-posts'),    # for vendor

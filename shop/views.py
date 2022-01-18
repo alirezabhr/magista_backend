@@ -402,6 +402,25 @@ class ShopView(APIView):
         return Response(ser.data, status=status.HTTP_200_OK)
 
 
+class ShopBioView(APIView):
+    serializer_class = ShopSerializer
+
+    def put(self, request, shop_pk):
+        try:
+            bio = request.data['bio']
+        except KeyError:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+
+        shop = get_object_or_404(Shop, id=shop_pk)
+        ser = self.serializer_class(shop)
+        data = ser.data
+        data['bio'] = bio
+        ser = self.serializer_class(shop, data=data)
+        ser.is_valid(raise_exception=True)
+        ser.save()
+        return Response(ser.data, status=status.HTTP_200_OK)
+
+
 class ShopInflationView(APIView):
 
     def increase_price(self, price, percent):
