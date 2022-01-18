@@ -44,7 +44,9 @@ class Shop(models.Model):
             if product.rate:
                 count += 1
                 rate_sum += product.rate
-        return rate_sum
+        if count:
+            return float("{:.1f}".format(rate_sum / count))
+        return 0
 
     @property
     def remaining_amount(self):
