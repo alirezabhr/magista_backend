@@ -9,6 +9,11 @@ from user.models import User
 
 # Create your models here.
 class Shop(models.Model):
+    class FreeDelivery(models.IntegerChoices):
+        NOT_FREE = 0
+        IN_CITY = 1
+        IN_COUNTRY = 2
+
     vendor = models.ForeignKey(User, on_delete=models.CASCADE, related_name='shop_vendor')
     email = models.EmailField()
     instagram_username = models.CharField(max_length=30, unique=True)
@@ -17,6 +22,7 @@ class Shop(models.Model):
     city = models.CharField(max_length=30)
     address = models.TextField()
     bio = models.CharField(max_length=400, blank=True)
+    delivery = models.IntegerField(choices=FreeDelivery.choices, default=FreeDelivery.NOT_FREE)
     profile_pic = models.CharField(max_length=80, null=True)
     commission_percent = models.SmallIntegerField(default=5)
     last_scrape = models.DateTimeField(auto_now_add=True)
