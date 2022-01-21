@@ -152,7 +152,7 @@ class Product(models.Model):
 
     @property
     def discount_percent(self):
-        discount = Discount.objects.filter(product=self).last()
+        discount = ProductDiscount.objects.filter(product=self).last()
         if discount is None or discount.is_active is False:
             return 0
         return discount.percent
@@ -165,7 +165,7 @@ class Product(models.Model):
 
     @property
     def discount_description(self):
-        discount = Discount.objects.filter(product=self).last()
+        discount = ProductDiscount.objects.filter(product=self).last()
         if discount is None or discount.is_active is False:
             return ''
         return discount.description
@@ -198,7 +198,7 @@ class ProductAttribute(models.Model):
     value = models.CharField(max_length=50)
 
 
-class Discount(models.Model):
+class ProductDiscount(models.Model):
     product = models.ForeignKey(Product, models.PROTECT, null=True, related_name='product_discount')
     percent = models.PositiveSmallIntegerField()
     description = models.CharField(max_length=300, blank=True)

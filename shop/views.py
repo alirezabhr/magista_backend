@@ -10,8 +10,8 @@ from rest_framework.permissions import AllowAny, IsAdminUser
 from rest_framework.pagination import PageNumberPagination
 
 from sms_service.sms_service import SMSService
-from .models import Shop, Product, BankCredit, ProductAttribute, Post, Discount, TagLocation, ProductImage
-from .serializers import ShopSerializer, ProductSerializer, ShopPublicSerializer, DiscountSerializer, \
+from .models import Shop, Product, BankCredit, ProductAttribute, Post, ProductDiscount, TagLocation, ProductImage
+from .serializers import ShopSerializer, ProductSerializer, ShopPublicSerializer, ProductDiscountSerializer, \
     BankCreditSerializer, ProductAttributeSerializer, PostSerializer, \
     ProductImageSerializer, PostReadonlySerializer, TagLocationSerializer, ProductImageReadonlySerializer
 from logger.serializers import IssueSerializer
@@ -644,8 +644,8 @@ class PostEditView(UpdateAPIView):
 
 
 class ProductDiscountView(APIView):
-    serializer_class = DiscountSerializer
-    query_set = Discount.objects.all()
+    serializer_class = ProductDiscountSerializer
+    query_set = ProductDiscount.objects.all()
 
     def post(self, request, product_pk):
         """ create a new discount for product"""
