@@ -2,7 +2,7 @@ from rest_framework import serializers
 
 from shop.models import Product
 from user.serializers import CustomerSerializer
-from .models import OrderItem, Order, Invoice
+from .models import OrderItem, Order, Invoice, OrderShopDiscount
 from shop.serializers import ProductReadonlySerializer
 
 
@@ -90,4 +90,10 @@ class InvoiceSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Invoice
+        fields = '__all__'
+
+
+class OrderShopDiscountSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = OrderShopDiscount
         fields = '__all__'
