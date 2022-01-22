@@ -1,6 +1,7 @@
 from rest_framework import serializers
 
-from .models import Shop, Product, ProductDiscount, BankCredit, ProductAttribute, ProductImage, Post, TagLocation
+from .models import Shop, Product, ProductDiscount, BankCredit, ProductAttribute, ProductImage, Post, TagLocation, \
+    ShopDiscount
 
 
 class ShopSerializer(serializers.ModelSerializer):
@@ -144,4 +145,10 @@ class PostReadonlySerializer(serializers.ModelSerializer):
 class ProductDiscountSerializer(serializers.ModelSerializer):
     class Meta:
         model = ProductDiscount
+        fields = '__all__'
+
+
+class ShopDiscountSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ShopDiscount
         fields = '__all__'

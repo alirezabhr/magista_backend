@@ -203,7 +203,15 @@ class ProductDiscount(models.Model):
     percent = models.PositiveSmallIntegerField()
     description = models.CharField(max_length=300, blank=True)
     is_active = models.BooleanField(default=True)
-    # start_at = models.DateTimeField()
-    # end_at = models.DateTimeField(null=True)
-    # created_at = models.DateTimeField(auto_now_add=True)
-    # disabled_at = models.DateTimeField(null=True)
+
+
+class ShopDiscount(models.Model):
+    shop = models.ForeignKey(Shop, models.PROTECT, related_name='shop_discount')
+    percent = models.PositiveSmallIntegerField()
+    description = models.CharField(max_length=300, blank=True)
+    is_active = models.BooleanField(default=True)
+    code = models.CharField(max_length=10)
+    count = models.IntegerField(null=True)  # count == null means this discount doesn't have limit
+    start_at = models.DateTimeField(null=True)
+    end_at = models.DateTimeField(null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
