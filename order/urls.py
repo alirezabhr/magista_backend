@@ -9,5 +9,6 @@ urlpatterns = [
     path('invoice/<int:invoice_pk>/', views.InvoiceView.as_view()),
     path('<int:order_pk>/', views.OrderView.as_view()),
     path('<int:order_pk>/rate/', views.OrderRateView.as_view()),
+    path('<int:order_pk>/discount/apply/', views.ApplyShopDiscountView.as_view()),     # for customer
     path('shop/<int:shop_pk>/stats/', views.ShopStatsView.as_view(), name='shop-stats'),
 ]
