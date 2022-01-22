@@ -189,7 +189,8 @@ class ApplyShopDiscountView(APIView):
             return Response(status=status.HTTP_406_NOT_ACCEPTABLE)
 
         if shop_discount.count is not None:     # shop discount has count limit
-            if shop_discount.count - self.shop_discount_used_count(order_shop_id, code) == 0:
+            if shop_discount.count - self.shop_discount_used_count(order_shop_id, code) <= 0:
+                # <= for a case when multiple customer make the invoice at the same time
                 return Response(status=status.HTTP_406_NOT_ACCEPTABLE)     # discount exceeded its count limit
 
         if shop_discount.start_at is not None and shop_discount.end_at is not None:     # it has time limit
