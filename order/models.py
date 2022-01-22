@@ -77,6 +77,10 @@ class Order(models.Model):
             return 0
 
     @property
+    def has_discount_code(self):
+        return OrderShopDiscount.objects.filter(order=self).exists()
+
+    @property
     def total_discount(self):
         return self.shop_discount()
 
