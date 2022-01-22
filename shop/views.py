@@ -1,4 +1,6 @@
 import json
+import random
+import string
 
 from django.utils import timezone
 from rest_framework.generics import get_object_or_404, ListCreateAPIView, DestroyAPIView, RetrieveAPIView, \
@@ -10,10 +12,12 @@ from rest_framework.permissions import AllowAny, IsAdminUser
 from rest_framework.pagination import PageNumberPagination
 
 from sms_service.sms_service import SMSService
-from .models import Shop, Product, BankCredit, ProductAttribute, Post, ProductDiscount, TagLocation, ProductImage
+from .models import Shop, Product, BankCredit, ProductAttribute, Post, ProductDiscount, TagLocation, ProductImage, \
+    ShopDiscount
 from .serializers import ShopSerializer, ProductSerializer, ShopPublicSerializer, ProductDiscountSerializer, \
     BankCreditSerializer, ProductAttributeSerializer, PostSerializer, \
-    ProductImageSerializer, PostReadonlySerializer, TagLocationSerializer, ProductImageReadonlySerializer
+    ProductImageSerializer, PostReadonlySerializer, TagLocationSerializer, ProductImageReadonlySerializer, \
+    ShopDiscountSerializer
 from logger.serializers import IssueSerializer
 
 from scraping.models import Scraper
@@ -440,6 +444,34 @@ class ShopInflationView(APIView):
             product.save()
 
         return Response(status=status.HTTP_200_OK)
+
+
+class ShopDiscountView(APIView):
+    serializer_class = ShopDiscountSerializer
+
+    def generate_discount_code(self):
+        """ generate a random discount code with a length of 8 starts with 's-' """
+        return 's-' + ''.join(random.choice(string.ascii_letters + string.digits) for _ in range(6))
+
+    def generate_unique_code(self, shop_pk):
+        qs = ShopDiscount.objects.filter(shop_id=shop_pk)
+        shop_discount_code_list = [sd.code for sd in qs]
+        code = self.generate_discount_code()
+        while code in shop_discount_code_list:
+            code = self.generate_discount_code()
+        return code
+
+    def post(self, request, shop_pk):
+        get_object_or_404(Shop, id=shop_pk)
+        code = self.generate_unique_code(shop_pk)
+        data = request.data
+        data['code'] = code
+
+        ser = self.serializer_class(data=data)
+        ser.is_valid(raise_exception=True)
+        ser.save()
+
+        return Response(ser.data, status=status.HTTP_201_CREATED)
 
 
 class ShopPostView(ListAPIView):
