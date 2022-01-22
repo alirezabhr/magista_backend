@@ -63,12 +63,26 @@ class Order(models.Model):
     def customer(self):
         return self.invoice.customer
 
-    @property
-    def total_price(self):
+    def order_items_total_price(self):
         total = 0
         for item in self.order_items:
             total += item.price * item.count
         return total
+
+    def shop_discount(self):
+        order_shop_discount = OrderShopDiscount.objects.filter(order=self).last()  # just consider the last one
+        if order_shop_discount:
+            return (self.order_items_total_price() * order_shop_discount.shop_discount.percent) // 100
+        else:
+            return 0
+
+    @property
+    def total_discount(self):
+        return self.shop_discount()
+
+    @property
+    def total_price(self):
+        return self.order_items_total_price() - self.total_discount
 
     @property
     def status_text(self):
@@ -85,4 +99,13 @@ class OrderItem(models.Model):
     count = models.PositiveSmallIntegerField()
 
     def __str__(self):
-        return f"id: {self.pk} | order: {self.order.pk}"
+        return f"id: {self.id} | order: {self.order.id}"
+
+
+class OrderShopDiscount(models.Model):
+    order = models.ForeignKey(Order, models.PROTECT)
+    shop_discount = models.ForeignKey('shop.ShopDiscount', models.PROTECT)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"id: {self.id} | order: {self.order.id} | code: {self.shop_discount.code}"
