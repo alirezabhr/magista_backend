@@ -5,10 +5,10 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.generics import get_object_or_404, ListAPIView
 
-from shop.models import Product, Shop
-from .models import Order, Invoice, OrderItem
+from shop.models import Product, Shop, ShopDiscount
+from .models import Order, Invoice, OrderItem, OrderShopDiscount
 from .serializers import OrderSerializer, CartSerializer, OrderItemSerializer, OrderRetrieveSerializer, \
-    InvoiceSerializer, OrderItemDateTimeSerializer
+    InvoiceSerializer, OrderItemDateTimeSerializer, OrderShopDiscountSerializer
 
 
 # Create your views here.
@@ -162,3 +162,48 @@ class ShopStatsView(APIView):
                                                order__invoice__created_at__range=(from_date, now))
         ser = self.serializer_class(order_items, many=True)
         return Response(ser.data, status=status.HTTP_200_OK)
+
+
+class ApplyShopDiscountView(APIView):
+
+    def get_object(self, shop_pk, code):
+        return ShopDiscount.objects.get(shop_id=shop_pk, code=code)     # it may raise an error if it doesn't exist
+
+    def shop_discount_used_count(self, shop_pk, code):
+        qs = OrderShopDiscount.objects.filter(shop_discount__code=code, shop_discount__shop_id=shop_pk)
+        paid = [osd for osd in qs if osd.order.invoice.is_paid]
+        return len(paid)
+
+    def post(self, request, order_pk):
+        try:
+            code = request.data['code']
+            order = get_object_or_404(Order, id=order_pk)
+            order_shop_id = order.shop.id
+            shop_discount = self.get_object(order_shop_id, code)
+        except KeyError:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+        except ShopDiscount.DoesNotExist:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+
+        if shop_discount.is_active is False:
+            return Response(status=status.HTTP_406_NOT_ACCEPTABLE)
+
+        if shop_discount.count is not None:     # shop discount has count limit
+            if shop_discount.count - self.shop_discount_used_count(order_shop_id, code) == 0:
+                return Response(status=status.HTTP_406_NOT_ACCEPTABLE)     # discount exceeded its count limit
+
+        if shop_discount.start_at is not None and shop_discount.end_at is not None:     # it has time limit
+            now = timezone.now()
+            if shop_discount.start_at > now or shop_discount.end_at < now:
+                return Response(status=status.HTTP_406_NOT_ACCEPTABLE)     # discount exceeded its time limit
+
+        order_shop_discount_data = {
+            'order': order.id,
+            'shop_discount': shop_discount.id,
+        }
+        ser = OrderShopDiscountSerializer(data=order_shop_discount_data)
+        ser.is_valid(raise_exception=True)
+        ser.save()
+
+        order_ser = OrderRetrieveSerializer(order)
+        return Response(order_ser.data, status=status.HTTP_201_CREATED)
