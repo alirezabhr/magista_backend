@@ -96,7 +96,7 @@ class BankCredit(models.Model):
 
 class Post(models.Model):
     shop = models.ForeignKey(Shop, models.PROTECT, related_name='shop_posts')
-    shortcode = models.CharField(max_length=15)  # this shortcode can create by backend
+    shortcode = models.CharField(max_length=25)  # this shortcode can create by backend
     description = models.TextField(blank=True)
     instagram_link = models.CharField(max_length=70, blank=True)  # instagram shortcode
     updated_at = models.DateTimeField(auto_now=True)
