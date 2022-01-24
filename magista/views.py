@@ -1,8 +1,9 @@
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.generics import ListAPIView
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAdminUser
 from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from shop.models import Product
 from shop.serializers import ProductReadonlySerializer
@@ -58,3 +59,17 @@ class DiscountedProductsView(ListAPIView):
                 break
 
         return products
+
+
+class MigrationHelper(APIView):
+    permission_classes = [IsAdminUser]
+
+    def post(self, request):
+        from order.models import OrderItem
+        for item in OrderItem.objects.all():
+            item.product_final_price = item.product.final_price
+            item.product_original_price = item.product.original_price
+            item.product_title = item.product.title
+            item.product_discount_percent = item.product.discount_percent
+            item.save()
+        return Response(status=status.HTTP_200_OK)

@@ -30,6 +30,7 @@ urlpatterns = [
     path('homepage-images-url/', views.homepage_images_url),
     path('newest-products/', views.NewestProductsView.as_view()),
     path('discounted-products/', views.DiscountedProductsView.as_view()),
+    path('migration-helper/', views.MigrationHelper.as_view()),
 ]
 
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
