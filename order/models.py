@@ -63,30 +63,40 @@ class Order(models.Model):
     def customer(self):
         return self.invoice.customer
 
-    def order_items_total_price(self):
-        total = 0
-        for item in self.order_items:
-            total += item.price * item.count
-        return total
-
-    def shop_discount(self):
-        order_shop_discount = OrderShopDiscount.objects.filter(order=self).last()  # just consider the last one
-        if order_shop_discount:
-            return (self.order_items_total_price() * order_shop_discount.shop_discount.percent) // 100
-        else:
-            return 0
-
     @property
     def has_discount_code(self):
         return OrderShopDiscount.objects.filter(order=self).exists()
 
     @property
-    def total_discount(self):
-        return self.shop_discount()
+    def total_original_price(self):
+        total = 0
+        for item in self.order_items:
+            total += item.product_original_price * item.count
+        return total
+
+    def total_final_price(self):
+        total = 0
+        for item in self.order_items:
+            total += item.product_final_price * item.count
+        return total
+
+    def total_order_item_discount_amount(self):
+        return self.total_original_price - self.total_final_price()
+
+    def shop_discount_amount(self):
+        order_shop_discount = OrderShopDiscount.objects.filter(order=self).last()  # just consider the last one
+        if order_shop_discount:
+            return (self.total_final_price() * order_shop_discount.shop_discount.percent) // 100
+        else:
+            return 0
 
     @property
-    def total_price(self):
-        return self.order_items_total_price() - self.total_discount
+    def total_discount_amount(self):
+        return self.shop_discount_amount() + self.total_order_item_discount_amount()
+
+    @property
+    def final_price(self):
+        return self.total_final_price() - self.shop_discount_amount()
 
     @property
     def status_text(self):

@@ -17,8 +17,9 @@ class OrderItemRetrieveSerializer(serializers.ModelSerializer):
 class OrderRetrieveSerializer(serializers.ModelSerializer):
     order_items = OrderItemRetrieveSerializer(many=True, read_only=True)
     customer = CustomerSerializer(read_only=True)
-    total_price = serializers.ReadOnlyField()
-    total_discount = serializers.ReadOnlyField()
+    total_original_price = serializers.ReadOnlyField()
+    total_discount_amount = serializers.ReadOnlyField()
+    final_price = serializers.ReadOnlyField()
     has_discount_code = serializers.ReadOnlyField()
     status_text = serializers.ReadOnlyField()
     updated_at = serializers.DateTimeField(format="%Y-%m-%d %H:%M:%S", read_only=True)
@@ -50,8 +51,9 @@ class OrderItemDateTimeSerializer(serializers.ModelSerializer):
 
 
 class OrderSerializer(serializers.ModelSerializer):
-    total_price = serializers.ReadOnlyField()
-    total_discount = serializers.ReadOnlyField()
+    total_original_price = serializers.ReadOnlyField()
+    total_discount_amount = serializers.ReadOnlyField()
+    final_price = serializers.ReadOnlyField()
     has_discount_code = serializers.ReadOnlyField()
     status_text = serializers.ReadOnlyField()
     updated_at = serializers.DateTimeField(format="%Y-%m-%d %H:%M:%S", read_only=True)
