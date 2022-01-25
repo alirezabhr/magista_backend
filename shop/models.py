@@ -213,5 +213,5 @@ class ShopDiscount(models.Model):
     code = models.CharField(max_length=10)
     count = models.IntegerField(null=True)  # count == null means this discount doesn't have limit
     start_at = models.DateTimeField(null=True)
-    end_at = models.DateTimeField(null=True)
+    finish_at = models.DateTimeField(null=True)
     created_at = models.DateTimeField(auto_now_add=True)
