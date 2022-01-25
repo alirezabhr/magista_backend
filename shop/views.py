@@ -446,8 +446,11 @@ class ShopInflationView(APIView):
         return Response(status=status.HTTP_200_OK)
 
 
-class ShopDiscountView(APIView):
+class ShopDiscountView(ListAPIView):
     serializer_class = ShopDiscountSerializer
+
+    def get_queryset(self):
+        return ShopDiscount.objects.filter(shop_id=self.kwargs['shop_pk']).order_by('id').reverse()
 
     def generate_discount_code(self):
         """ generate a random discount code with a length of 8 starts with 's-' """
