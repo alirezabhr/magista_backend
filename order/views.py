@@ -52,7 +52,10 @@ class CartView(APIView):
                     'order': order.pk,
                     'product': product.id,
                     'count': order_item['count'],
-                    'price': product.final_price
+                    'product_title': product.title,
+                    'product_original_price': product.original_price,
+                    'product_final_price': product.final_price,
+                    'product_discount_percent': product.discount_percent,
                 }
 
                 order_item_serializer = OrderItemSerializer(data=order_item_data)
@@ -69,7 +72,7 @@ class ShopOrdersView(ListAPIView):
     serializer_class = OrderRetrieveSerializer
 
     def get_queryset(self):
-        return Order.objects.filter(shop_id=self.kwargs['shop_pk']).order_by('id')
+        return Order.objects.filter(shop_id=self.kwargs['shop_pk'], status__gt=Order.Status.AWAITING_PAYMENT).order_by('id')
 
 
 class CustomerOrdersView(ListAPIView):
