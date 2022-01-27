@@ -109,7 +109,6 @@ class Order(models.Model):
 class OrderItem(models.Model):
     order = models.ForeignKey(Order, models.PROTECT)
     product = models.ForeignKey('shop.Product', models.PROTECT)
-    price = models.PositiveIntegerField()
     product_title = models.CharField(max_length=40)
     product_original_price = models.PositiveIntegerField()
     product_final_price = models.PositiveIntegerField()
