@@ -1,6 +1,5 @@
 import json
 import random
-import string
 
 from django.utils import timezone
 from rest_framework.generics import get_object_or_404, ListCreateAPIView, DestroyAPIView, RetrieveAPIView, \
@@ -453,8 +452,8 @@ class ShopDiscountView(ListAPIView):
         return ShopDiscount.objects.filter(shop_id=self.kwargs['shop_pk']).order_by('id').reverse()
 
     def generate_discount_code(self):
-        """ generate a random discount code with a length of 8 starts with 's-' """
-        return 's-' + ''.join(random.choice(string.ascii_letters + string.digits) for _ in range(6))
+        # generate a random discount code with a length of 4 starts with
+        return ''.join(random.choice('123456789') for _ in range(4))
 
     def generate_unique_code(self, shop_pk):
         qs = ShopDiscount.objects.filter(shop_id=shop_pk)
