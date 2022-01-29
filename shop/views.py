@@ -370,31 +370,22 @@ class ShopView(APIView):
 
     def post(self, request, vendor_pk):
         response = {}
-        request_data = request.data
+        data = request.data
 
-        ser = self.serializer_class(data=request_data)
-        if not ser.is_valid():
-            return Response(ser.errors, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            vendor_id = data['vendor']
+            instagram_username = data['instagram_username']
+        except KeyError:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
 
-        if ser.data.get('vendor') != vendor_pk:
+        if vendor_id != vendor_pk:
             response["error"] = ['pk is not valid']
             return Response(response, status=status.HTTP_400_BAD_REQUEST)
 
-        instagram_username = ser.data.get('instagram_username')
+        data['last_scrape'] = timezone.now()
+        data['profile_pic'] = f"media/shop/{instagram_username}/profile_image.jpg"
 
-        # try:
-        #     profile_pic_url = scrape.save_profile_image(instagram_username)
-        # except scrape.CustomException as ex:
-        #     response["error"] = [ex.message]
-        #     return Response(response, status=ex.status)
-        # except Exception as exc:
-        #     response["error"] = [str(exc)]
-        #     return Response(response, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-        # request_data['profile_pic'] = profile_pic_url
-        request_data['profile_pic'] = f"media/shop/{instagram_username}/profile_image.jpg"
-
-        ser = self.serializer_class(data=request_data)
+        ser = self.serializer_class(data=data)
         ser.is_valid(raise_exception=True)
         ser.save()
         return Response(ser.data, status=status.HTTP_201_CREATED)
