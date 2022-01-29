@@ -33,8 +33,10 @@ class Shop(models.Model):
     preparation = models.IntegerField(choices=PreparationTime.choices)
     profile_pic = models.CharField(max_length=80, null=True)
     commission_percent = models.SmallIntegerField(default=5)
-    last_scrape = models.DateTimeField(auto_now_add=True)
+    last_scrape = models.DateTimeField()
     created_at = models.DateTimeField(auto_now_add=True)
+
+
 
     @property
     def rate(self):
