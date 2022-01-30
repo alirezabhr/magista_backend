@@ -16,7 +16,7 @@ class Invoice(models.Model):
     def total_amount(self):
         total = 0
         for order in self.orders:
-            total += order.total_price
+            total += order.final_price
         return total
 
     @property
