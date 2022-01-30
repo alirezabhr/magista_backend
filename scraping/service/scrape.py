@@ -56,8 +56,38 @@ class Scraper:
             self.session.headers.update({'user-agent': CHROME_WIN_UA})
             self.rhx_gis = ""
         else:
+            if 'checkpoint_url' in login_text:
+                raise CustomException(503, f'Needs verification. checkpoint_url:"{login_text.get("checkpoint_url")}"')
             logger('Login failed for ' + self.username)
             raise CustomException(503, 'Login failed')
+
+    def login_challenge(self, checkpoint_url):
+        self.session.headers.update({'Referer': BASE_URL})
+        req = self.session.get(BASE_URL[:-1] + checkpoint_url)
+        self.session.headers.update({'X-CSRFToken': req.cookies['csrftoken'], 'X-Instagram-AJAX': '1'})
+
+        self.session.headers.update({'Referer': BASE_URL[:-1] + checkpoint_url})
+        mode = 1    # 0:SMS, 1:EMAIL
+        challenge_data = {'choice': mode}
+        challenge = self.session.post(BASE_URL[:-1] + checkpoint_url, data=challenge_data, allow_redirects=True)
+        self.session.headers.update({'X-CSRFToken': challenge.cookies['csrftoken'], 'X-Instagram-AJAX': '1'})
+
+        code = int(input('Enter code received: '))
+        code_data = {'security_code': code}
+        code = self.session.post(BASE_URL[:-1] + checkpoint_url, data=code_data, allow_redirects=True)
+        self.session.headers.update({'X-CSRFToken': code.cookies['csrftoken']})
+        self.cookies = code.cookies
+        code_text = json.loads(code.text)
+
+        if code_text.get('status') == 'ok':
+            self.authenticated = True
+            self.logged_in = True
+        elif 'errors' in code.text:
+            for count, error in enumerate(code_text['challenge']['errors']):
+                count += 1
+                logger('Session error %(count)s: "%(error)s"' % locals())
+        else:
+            logger(json.dumps(code_text))
 
     def logout(self):
         """Logs out of instagram."""
