@@ -131,6 +131,8 @@ class Scraper:
                         'text': 'Failed to get media details for ' + shortcode
                     }
                     raise CustomException(503, error_data)
+            except KeyError:
+                return json.loads(resp)['items'][0]
 
         else:
             error_data = {
