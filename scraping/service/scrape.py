@@ -46,6 +46,10 @@ class Scraper:
 
         login_data = {'username': self.username, 'password': self.password}
         login = self.session.post(LOGIN_URL, data=login_data, allow_redirects=True)
+
+        if login.status_code == 429:
+            raise CustomException(429, 'Too Many Requests In login')
+
         self.session.headers.update({'X-CSRFToken': login.cookies['csrftoken']})
         self.cookies = login.cookies
         login_text = json.loads(login.text)
@@ -67,7 +71,7 @@ class Scraper:
         self.session.headers.update({'X-CSRFToken': req.cookies['csrftoken'], 'X-Instagram-AJAX': '1'})
 
         self.session.headers.update({'Referer': BASE_URL[:-1] + checkpoint_url})
-        mode = 1    # 0:SMS, 1:EMAIL
+        mode = 1  # 0:SMS, 1:EMAIL
         challenge_data = {'choice': mode}
         challenge = self.session.post(BASE_URL[:-1] + checkpoint_url, data=challenge_data, allow_redirects=True)
         self.session.headers.update({'X-CSRFToken': challenge.cookies['csrftoken'], 'X-Instagram-AJAX': '1'})
@@ -229,12 +233,31 @@ class Scraper:
         details = self.__get_media_details(node['shortcode'])
         nodes = []
 
-        for carousel_item in details['edge_sidecar_to_children']['edges']:
-            n = {}
-            node = carousel_item['node']
-            n['id'] = node['id']
-            n['display_url'] = node['display_url']
-            nodes.append(n)
+        if 'edge_sidecar_to_children' in details:
+            for carousel_item in details['edge_sidecar_to_children']['edges']:
+                n = {}
+                node = carousel_item['node']
+                n['id'] = node['id']
+                n['display_url'] = node['display_url']
+                nodes.append(n)
+        else:
+            for media in (details['carousel_media'] if 'carousel_media' in details else [details]):
+                n = {}
+
+                if media['media_type'] == 2:
+                    media_versions = media['video_versions']
+                else:
+                    media_versions = media['image_versions2']['candidates']
+
+                media_versions = sorted(media_versions, key=lambda m: m['height'])
+                if len(media_versions) > 5:
+                    best_candidate = media_versions[2]
+                else:
+                    best_candidate = media_versions[len(media_versions) // 2]
+
+                n['id'] = media['id']
+                n['display_url'] = best_candidate['url']
+                nodes.append(n)
 
         return nodes
 
@@ -274,7 +297,9 @@ def scrape_instagram_media(login_user, login_pass, username):
 
     write_user_profile_info_data(username, profile_info)
 
-    return scraper.get_media_data(profile_info['id'], '')
+    media_data = scraper.get_media_data(profile_info['id'], '')
+    scraper.logout()
+    return media_data
 
 
 def scrape_new_instagram_media(login_user, login_pass, user_id, last_post_shortcode):
@@ -282,7 +307,9 @@ def scrape_new_instagram_media(login_user, login_pass, user_id, last_post_shortc
     scraper.authenticate_with_login()
     scraper.is_getting_new_media = True
 
-    return scraper.get_media_data(user_id, last_post_shortcode)
+    media_data = scraper.get_media_data(user_id, last_post_shortcode)
+    scraper.logout()
+    return media_data
 
 
 def write_user_profile_info_data(username, profile_info_data):
@@ -425,7 +452,7 @@ def get_page_preview_data(username, page, file_data):
                 continue
             child_img_path = f"media/shop/{username}/{post_data['id']}/{child['id']}/display_image.jpg"
             tmp_child = {
-                'index': i-1,
+                'index': i - 1,
                 'id': child['id'],
                 'display_image': child_img_path,
                 'parent': post_data['id'],
