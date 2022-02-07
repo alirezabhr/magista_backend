@@ -13,6 +13,9 @@ from .serializers import UserSerializer, CustomerSerializer, OtpSerializer, User
 from sms_service.sms_service import SMSService
 from utils import utils
 
+from logger.log_sentry import log_message_sentry
+from sentry_sdk import capture_exception
+
 
 # Create your views here.
 class UserView(APIView):
@@ -108,6 +111,7 @@ class CustomerView(APIView):
             ser.save()
             return Response(ser.data, status=status.HTTP_201_CREATED)
         else:
+            log_message_sentry('CustomerView post', ser.errors, request.data)
             return Response(ser.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
@@ -118,7 +122,8 @@ def send_otp_view(request):
 
     try:
         phone = request.data['phone']
-    except KeyError:
+    except KeyError as e:
+        capture_exception(error=e)
         response["phone"] = ["This field is required."]
         return Response(response, status=status.HTTP_400_BAD_REQUEST)
 
@@ -127,7 +132,7 @@ def send_otp_view(request):
     try:
         SMSService().send_otp(phone=phone, otp=otp_code)
     except Exception as e:
-        print(e)
+        capture_exception(error=e)
         response['error'] = "problem in sending otp sms"
         return Response(response, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
@@ -148,6 +153,7 @@ def send_otp_view(request):
 def check_otp_view(request):
     ser = OtpSerializer(data=request.data)
     if not ser.is_valid():
+        log_message_sentry('check_otp_view', ser.errors, request.data)
         return Response(ser.errors, status=status.HTTP_400_BAD_REQUEST)
 
     objects = Otp.objects.filter(phone=ser.data.get('phone'))

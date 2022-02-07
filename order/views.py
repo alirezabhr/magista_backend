@@ -5,10 +5,13 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.generics import get_object_or_404, ListAPIView
 
+from logger.log_sentry import log_message_sentry
 from shop.models import Product, Shop, ShopDiscount
 from .models import Order, Invoice, OrderItem, OrderShopDiscount
 from .serializers import OrderSerializer, CartSerializer, OrderItemSerializer, OrderRetrieveSerializer, \
     InvoiceSerializer, OrderItemDateTimeSerializer, OrderShopDiscountSerializer
+
+from sentry_sdk import capture_exception
 
 
 # Create your views here.
@@ -20,7 +23,9 @@ class CartView(APIView):
     def post(self, request):     # create orders (just for customer)
         data = request.data
         cart_ser = self.serializer_class(data=data)
-        cart_ser.is_valid(raise_exception=True)
+        if not cart_ser.is_valid():
+            log_message_sentry('CartView post cart_ser', cart_ser.errors, request.data)
+            return Response(cart_ser.errors, status=status.HTTP_400_BAD_REQUEST)
 
         order_list = []
 
@@ -39,13 +44,16 @@ class CartView(APIView):
             }
 
             order_serializer = self.order_serializer_class(data=order_data)
-            order_serializer.is_valid(raise_exception=True)
+            if not order_serializer.is_valid():
+                log_message_sentry('CartView post order_serializer', order_serializer.errors, request.data)
+                return Response(order_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
             order = order_serializer.save()
 
             for order_item in order_sample['order_items']:
                 try:
                     product = Product.objects.get(pk=order_item['product']['id'])
-                except Product.DoesNotExist:
+                except Product.DoesNotExist as e:
+                    capture_exception(error=e)
                     return Response({'error': 'product does not exist'}, status=status.HTTP_400_BAD_REQUEST)
 
                 order_item_data = {
@@ -59,7 +67,9 @@ class CartView(APIView):
                 }
 
                 order_item_serializer = OrderItemSerializer(data=order_item_data)
-                order_item_serializer.is_valid(raise_exception=True)
+                if not order_item_serializer.is_valid():
+                    log_message_sentry('CartView post order_item_ser', order_item_serializer.errors, request.data)
+                    return Response(order_item_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
                 order_item_serializer.save()
 
             order_list.append(order)
@@ -105,7 +115,8 @@ class OrderView(APIView):
             }
             if new_status == Order.Status.SHIPPED:
                 payload['shipped_by'] = request.data['shipped_by']
-        except KeyError:
+        except KeyError as e:
+            capture_exception(error=e)
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
         if new_status == Order.Status.VERIFIED:
@@ -116,7 +127,9 @@ class OrderView(APIView):
             payload['canceled_at'] = timezone.now()
 
         ser = self.serializer_class(order, data=payload)
-        ser.is_valid(raise_exception=True)
+        if not ser.is_valid():
+            log_message_sentry('OrderView post', ser.errors, request.data, level="error")
+            return Response(ser.errors, status=status.HTTP_400_BAD_REQUEST)
         ser.save()
         return Response(ser.data, status=status.HTTP_200_OK)
 
@@ -129,7 +142,8 @@ class OrderRateView(APIView):
         order = get_object_or_404(Order, pk=order_pk)
         try:
             rate = request.data['rate']
-        except KeyError:
+        except KeyError as e:
+            capture_exception(error=e)
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
         payload = {
@@ -139,7 +153,9 @@ class OrderRateView(APIView):
             'rate': rate,
         }
         ser = self.serializer_class(order, data=payload)
-        ser.is_valid(raise_exception=True)
+        if not ser.is_valid():
+            log_message_sentry('OrderRateView post', ser.errors, request.data, level="error")
+            return Response(ser.errors, status=status.HTTP_400_BAD_REQUEST)
         ser.save()
         return Response(ser.data, status=status.HTTP_200_OK)
 
@@ -154,7 +170,8 @@ class ShopStatsView(APIView):
         try:
             days = request.query_params['days']
             days = int(days)
-        except KeyError:
+        except KeyError as e:
+            capture_exception(error=e)
             response["error"] = ['تعداد روز مشخص نشده است.']
             return Response(response, status=status.HTTP_400_BAD_REQUEST)
 
@@ -183,9 +200,11 @@ class ApplyShopDiscountView(APIView):
             order = get_object_or_404(Order, id=order_pk)
             order_shop_id = order.shop.id
             shop_discount = self.get_object(order_shop_id, code)
-        except KeyError:
+        except KeyError as e:
+            capture_exception(error=e)
             return Response(status=status.HTTP_400_BAD_REQUEST)
-        except ShopDiscount.DoesNotExist:
+        except ShopDiscount.DoesNotExist as e:
+            capture_exception(error=e)
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
         if shop_discount.is_active is False:

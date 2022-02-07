@@ -4,6 +4,7 @@ from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
 
+from logger.log_sentry import log_message_sentry
 from order.models import Invoice, Order
 from order.serializers import InvoiceSerializer
 from payment.models import PaymentInvoice, Withdraw
@@ -15,6 +16,8 @@ from sms_service.sms_service import SMSService
 from .services.pep import Pep, PepError
 from .services.pod import Pod, PodError, BankError
 
+from sentry_sdk import capture_exception
+
 
 # Create your views here.
 class PaymentView(APIView):
@@ -25,10 +28,14 @@ class PaymentView(APIView):
         get ipg token and redirect url. also create Payment Invoice object
         """
         ser = InvoiceSerializer(data=request.data)
-        ser.is_valid(raise_exception=True)
+        if not ser.is_valid():
+            log_message_sentry('PaymentView post', ser.errors, request.data, level='error')
+            return Response(ser.errors, status=status.HTTP_400_BAD_REQUEST)
+
         try:
             invoice = Invoice.objects.get(pk=request.data.get('id'))
-        except Invoice.DoesNotExist:
+        except Invoice.DoesNotExist as e:
+            capture_exception(error=e)
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
         amount_rial = invoice.total_amount * 10  # convert Toman to Rial
@@ -39,6 +46,7 @@ class PaymentView(APIView):
         try:
             token, redirect_url = pep.get_pep_redirect_url(amount_rial, invoice_number, invoice_date)
         except PepError as error:
+            capture_exception(error=error)
             rsp = {'error': [error.error_message]}
             return Response(rsp, status=status.HTTP_503_SERVICE_UNAVAILABLE)
 
@@ -48,7 +56,9 @@ class PaymentView(APIView):
             'token': token
         }
         ser = self.serializer_class(data=data)
-        ser.is_valid(raise_exception=True)
+        if not ser.is_valid():
+            log_message_sentry('PaymentView post', ser.errors, request.data, level='fatal')
+            return Response(ser.errors, status=status.HTTP_400_BAD_REQUEST)
         ser.save()
 
         response = {'url': redirect_url}
@@ -61,7 +71,9 @@ class PaymentView(APIView):
         """
         data = request.data
         ser = PaymentResultSerializer(data=data)
-        ser.is_valid(raise_exception=True)
+        if not ser.is_valid():
+            log_message_sentry('PaymentView put', ser.errors, request.data, level='fatal')
+            return Response(ser.errors, status=status.HTTP_400_BAD_REQUEST)
 
         pep = Pep()
         try:  # check transaction status
@@ -74,6 +86,7 @@ class PaymentView(APIView):
             invoice_date = check_trx_response['InvoiceDate']
             amount = check_trx_response['Amount']
         except PepError as error:
+            capture_exception(error=error)
             rsp = {'error': [error.error_message]}
             return Response(rsp, status=status.HTTP_503_SERVICE_UNAVAILABLE)
 
@@ -82,6 +95,7 @@ class PaymentView(APIView):
             masked_card_num = verify_trx_response['MaskedCardNumber']
             shaparak_ref_num = verify_trx_response['ShaparakRefNumber']
         except PepError as error:
+            capture_exception(error=error)
             rsp = {'error': [error.error_message]}
             return Response(rsp, status=status.HTTP_503_SERVICE_UNAVAILABLE)
 
@@ -94,9 +108,11 @@ class PaymentView(APIView):
             'shaparak_ref_number': shaparak_ref_num,
             'masked_card_number': masked_card_num,
         }
-        ser = PaymentDetailSerializer(data=payment_detail)
-        ser.is_valid(raise_exception=True)
-        ser.save()
+        payment_detail_ser = PaymentDetailSerializer(data=payment_detail)
+        if not payment_detail_ser.is_valid():
+            log_message_sentry('PaymentView put', payment_detail_ser.errors, request.data, level='fatal')
+            return Response(payment_detail_ser.errors, status=status.HTTP_400_BAD_REQUEST)
+        payment_detail_ser.save()
 
         paid_orders = Order.objects.filter(invoice_id=invoice_num)
         for order in paid_orders:
@@ -105,8 +121,8 @@ class PaymentView(APIView):
             order.save()
             try:
                 SMSService().order_sms(order.shop.vendor.phone)
-            except:
-                pass    # TODO should log an issue
+            except Exception as e:
+                capture_exception(error=e)
 
         return Response(ser.data, status=status.HTTP_202_ACCEPTED)
 
@@ -121,7 +137,8 @@ class WithdrawView(APIView):
             sheba_num = request.data['sheba']
             shop = Shop.objects.get(pk=shop_id)
             bank_credit = BankCredit.objects.get(shop_id=shop_id, sheba=sheba_num)
-        except (KeyError, Shop.DoesNotExist, BankCredit.DoesNotExist):
+        except (KeyError, Shop.DoesNotExist, BankCredit.DoesNotExist) as e:
+            capture_exception(error=e)
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
         paya_payload = {
@@ -138,12 +155,15 @@ class WithdrawView(APIView):
             pod = Pod()
             paya_response = pod.paya(paya_payload)
         except PodError as error:
+            capture_exception(error=error)
             rsp = {'error': error.error, 'type': 'pod_error'}
             return Response(rsp, status=status.HTTP_503_SERVICE_UNAVAILABLE)
         except BankError as error:
+            capture_exception(error=error)
             rsp = {'error': error.error_dict, 'type': 'bank_error'}
             return Response(rsp, status=status.HTTP_503_SERVICE_UNAVAILABLE)
         except Exception as error:
+            capture_exception(error=error)
             rsp = {'error': error, 'type': 'system_error'}
             return Response(rsp, status=status.HTTP_503_SERVICE_UNAVAILABLE)
 
@@ -157,7 +177,9 @@ class WithdrawView(APIView):
             "transaction_code": paya_response['bank_result']['Data'],
         }
         withdraw_ser = self.serializer_class(data=withdraw_data)
-        withdraw_ser.is_valid(raise_exception=True)
+        if not withdraw_ser.is_valid():
+            log_message_sentry('WithdrawView post', withdraw_ser.errors, request.data, level='fatal')
+            return Response(withdraw_ser.errors, status=status.HTTP_400_BAD_REQUEST)
         withdraw_ser.save()
 
         withdraw = Withdraw.objects.get(transaction_code=paya_response['bank_result']['Data'])

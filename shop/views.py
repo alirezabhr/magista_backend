@@ -10,6 +10,7 @@ from rest_framework import status, permissions
 from rest_framework.permissions import AllowAny, IsAdminUser
 from rest_framework.pagination import PageNumberPagination
 
+from logger.log_sentry import log_message_sentry
 from sms_service.sms_service import SMSService
 from .models import Shop, Product, BankCredit, ProductAttribute, Post, ProductDiscount, TagLocation, ProductImage, \
     ShopDiscount
@@ -21,6 +22,8 @@ from logger.serializers import IssueSerializer
 
 from scraping.service import scrape
 from utils import utils
+
+from sentry_sdk import capture_exception
 
 
 class IsShopOwnerOrReadOnly(permissions.BasePermission):
@@ -61,13 +64,15 @@ class ShopCreationRequestView(APIView):
             'is_customer_project': False,
         }
         ser = self.serializer_class(data=data)
-        ser.is_valid(raise_exception=True)
+        if not ser.is_valid():
+            log_message_sentry('ShopCreationRequestView post', ser.errors, request.data)
+            return Response(ser.errors, status=status.HTTP_400_BAD_REQUEST)
         ser.save()
 
         try:
             SMSService().shop_request_sms()
         except Exception as e:
-            print(e)
+            capture_exception(error=e)
             return Response(status=status.HTTP_503_SERVICE_UNAVAILABLE)
 
         return Response(status=status.HTTP_201_CREATED)
@@ -81,7 +86,8 @@ class ShopMediaQueryView(APIView):
 
         try:
             instagram_username = request.query_params['instagram_username']
-        except KeyError:
+        except KeyError as e:
+            capture_exception(error=e)
             response["error"] = ['آیدی پیج اینستاگرام الزامی است.']
             return Response(response, status=status.HTTP_400_BAD_REQUEST)
 
@@ -99,6 +105,7 @@ class ShopMediaQueryView(APIView):
             response["type"] = 'scraper error'
             return Response(response, status=ex.status)
         except Exception as exc:
+            capture_exception(error=exc)
             response["error"] = [str(exc)]
             response["type"] = 'system error'
             return Response(response, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -110,7 +117,8 @@ class ShopMediaQueryView(APIView):
 
         try:
             instagram_username = request.query_params['instagram_username']
-        except KeyError:
+        except KeyError as e:
+            capture_exception(error=e)
             response["error"] = ['آیدی پیج اینستاگرام الزامی است.']
             return Response(response, status=status.HTTP_400_BAD_REQUEST)
 
@@ -125,9 +133,11 @@ class ShopMediaQueryView(APIView):
             response_data = scrape.get_page_preview_data(instagram_username, page, posts_preview_data)
             return Response(response_data, status=status.HTTP_200_OK)
         except scrape.CustomException as ex:
+            capture_exception(error=ex)
             response["error"] = [ex.message]
             return Response(response, status=ex.status)
         except Exception as exc:
+            capture_exception(error=exc)
             response["error"] = [str(exc)]
             return Response(response, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
@@ -140,12 +150,14 @@ class ShopMediaQueryView(APIView):
             extra_posts = request.data['extra_posts']
             user_pk = request.data['user_id']
         except KeyError as e:
+            capture_exception(error=e)
             response["error"] = [str(e)]
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
         try:
             Shop.objects.get(instagram_username=instagram_username, vendor_id=user_pk)
-        except Shop.DoesNotExist:
+        except Shop.DoesNotExist as e:
+            capture_exception(error=e)
             response["error"] = ["shop not found"]
             return Response(response, status=status.HTTP_404_NOT_FOUND)
 
@@ -155,10 +167,12 @@ class ShopMediaQueryView(APIView):
             new_media_query_data = utils.remove_extra_posts_media_query(media_query_data, extra_posts)
             scrape.write_user_media_query_data(instagram_username, new_media_query_data)
         except scrape.CustomException as ex:
+            capture_exception(error=ex)
             response["error"] = [ex.message]
             response["type"] = 'scraper error'
             return Response(response, status=ex.status)
         except Exception as exc:
+            capture_exception(error=exc)
             response["error"] = [str(exc)]
             response["type"] = 'system error'
             return Response(response, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -180,7 +194,8 @@ class ShopMediaQueryNewPostsView(APIView):
             if last_post is None:  # shop does not exists or doesn't have any posts
                 return Response(status=status.HTTP_400_BAD_REQUEST)
             last_post_shortcode = last_post.shortcode
-        except KeyError:
+        except KeyError as e:
+            capture_exception(error=e)
             response["error"] = ['آیدی پیج اینستاگرام الزامی است.']
             return Response(response, status=status.HTTP_400_BAD_REQUEST)
 
@@ -192,10 +207,12 @@ class ShopMediaQueryNewPostsView(APIView):
             scrape.write_user_new_media_query_data(instagram_username, data)
             return Response(data, status=status.HTTP_200_OK)
         except scrape.CustomException as ex:
+            capture_exception(error=ex)
             response["error"] = [ex.message]
             response["type"] = 'scraper error'
             return Response(response, status=ex.status)
         except Exception as exc:
+            capture_exception(error=exc)
             response["error"] = [str(exc)]
             response["type"] = 'system error'
             return Response(response, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -207,7 +224,8 @@ class ShopMediaQueryNewPostsView(APIView):
 
         try:
             instagram_username = request.query_params['instagram_username']
-        except KeyError:
+        except KeyError as e:
+            capture_exception(error=e)
             response["error"] = ['آیدی پیج اینستاگرام الزامی است.']
             return Response(response, status=status.HTTP_400_BAD_REQUEST)
 
@@ -221,10 +239,12 @@ class ShopMediaQueryNewPostsView(APIView):
             response_data = scrape.get_page_preview_data(instagram_username, page, posts_preview_data)
             return Response(response_data, status=status.HTTP_200_OK)
         except scrape.CustomException as ex:
+            capture_exception(error=ex)
             response["error"] = [ex.message]
             response["type"] = 'scraper error'
             return Response(response, status=ex.status)
         except Exception as exc:
+            capture_exception(error=exc)
             response["error"] = [str(exc)]
             response["type"] = 'system error'
             return Response(response, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -237,12 +257,14 @@ class ShopMediaQueryNewPostsView(APIView):
             instagram_username = request.query_params['instagram_username']
             extra_posts = request.data['extra_posts']
             user_pk = request.data['user_id']
-        except KeyError:
+        except KeyError as e:
+            capture_exception(error=e)
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
         try:
             Shop.objects.get(instagram_username=instagram_username, vendor_id=user_pk)
-        except Shop.DoesNotExist:
+        except Shop.DoesNotExist as e:
+            capture_exception(error=e)
             response["error"] = ["shop not found"]
             return Response(response, status=status.HTTP_404_NOT_FOUND)
 
@@ -252,10 +274,12 @@ class ShopMediaQueryNewPostsView(APIView):
             new_media_query_data = utils.remove_extra_posts_media_query(media_query_data, extra_posts)
             scrape.write_user_new_media_query_data(instagram_username, new_media_query_data)
         except scrape.CustomException as ex:
+            capture_exception(error=ex)
             response["error"] = [ex.message]
             response["type"] = 'scraper error'
             return Response(response, status=ex.status)
         except Exception as exc:
+            capture_exception(error=exc)
             response["error"] = [str(exc)]
             response["type"] = 'system error'
             return Response(response, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -271,17 +295,20 @@ class SaveMediaView(APIView):
 
         try:
             instagram_username = request.query_params['instagram_username']
-        except KeyError:
+        except KeyError as e:
+            capture_exception(error=e)
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
         try:
             data = scrape.scrape_instagram_media(instagram_username)
             scrape.write_user_media_query_data(instagram_username, data)
         except scrape.CustomException as ex:
+            capture_exception(error=ex)
             response["error"] = [ex.message]
             response["type"] = 'scraper error'
             return Response(response, status=ex.status)
         except Exception as exc:
+            capture_exception(error=exc)
             response["error"] = [str(exc)]
             response["type"] = 'system error'
             return Response(response, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -298,9 +325,11 @@ class SaveMediaView(APIView):
         try:
             scrape.save_profile_image(instagram_username)
         except scrape.CustomException as ex:
+            capture_exception(error=ex)
             response["error"] = [ex.message]
             return Response(response, status=ex.status)
         except Exception as exc:
+            capture_exception(error=exc)
             response["error"] = [str(exc)]
             return Response(response, status=status.HTTP_503_SERVICE_UNAVAILABLE)
 
@@ -318,18 +347,22 @@ class ShopView(APIView):
         try:
             vendor_id = data['vendor']
             instagram_username = data['instagram_username']
-        except KeyError:
+        except KeyError as e:
+            capture_exception(error=e)
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
         if vendor_id != vendor_pk:
             response["error"] = ['pk is not valid']
+            log_message_sentry('ShopView post', response, request.data)
             return Response(response, status=status.HTTP_400_BAD_REQUEST)
 
         data['last_scrape'] = timezone.now()
         data['profile_pic'] = f"media/shop/{instagram_username}/profile_image.jpg"
 
         ser = self.serializer_class(data=data)
-        ser.is_valid(raise_exception=True)
+        if not ser.is_valid():
+            log_message_sentry('ShopView post', ser.errors, request.data)
+            return Response(ser.errors, status=status.HTTP_400_BAD_REQUEST)
         ser.save()
         return Response(ser.data, status=status.HTTP_201_CREATED)
 
@@ -345,7 +378,8 @@ class ShopBioView(APIView):
     def put(self, request, shop_pk):
         try:
             bio = request.data['bio']
-        except KeyError:
+        except KeyError as e:
+            capture_exception(error=e)
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
         shop = get_object_or_404(Shop, id=shop_pk)
@@ -353,7 +387,9 @@ class ShopBioView(APIView):
         data = ser.data
         data['bio'] = bio
         ser = self.serializer_class(shop, data=data)
-        ser.is_valid(raise_exception=True)
+        if not ser.is_valid():
+            log_message_sentry('ShopBioView put', ser.errors, request.data)
+            return Response(ser.errors, status=status.HTTP_400_BAD_REQUEST)
         ser.save()
         return Response(ser.data, status=status.HTTP_200_OK)
 
@@ -361,13 +397,14 @@ class ShopBioView(APIView):
 class ShopInflationView(APIView):
 
     def increase_price(self, price, percent):
-        price = (price * (100+percent)) // 100
-        price = (price // 100) * 100    # 12387 -> 12300
+        price = (price * (100 + percent)) // 100
+        price = (price // 100) * 100  # 12387 -> 12300
         return price
 
     def post(self, request, shop_pk):
         percent = request.data.get('percent')
         if percent is None:
+            log_message_sentry('ShopInflationView post', {'error': 'percent is invalid'}, request.data, level='error')
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
         shop = get_object_or_404(Shop, id=shop_pk)
@@ -404,7 +441,9 @@ class ShopDiscountView(ListAPIView):
         data['code'] = code
 
         ser = self.serializer_class(data=data)
-        ser.is_valid(raise_exception=True)
+        if not ser.is_valid():
+            log_message_sentry('ShopDiscountView post', ser.errors, request.data, level='error')
+            return Response(ser.errors, status=status.HTTP_400_BAD_REQUEST)
         ser.save()
 
         return Response(ser.data, status=status.HTTP_201_CREATED)
@@ -430,16 +469,19 @@ class ShopPostView(ListAPIView):
             shop_id = shop.pk
             instagram_username = request.data['instagram_username']
             shop = Shop.objects.get(pk=shop_id, instagram_username=instagram_username)
-        except KeyError:
+        except KeyError as e:
+            capture_exception(error=e)
             response["error"] = ["آیدی فروشگاه ضروری است."]
             return Response(response, status=status.HTTP_400_BAD_REQUEST)
-        except Shop.DoesNotExist:
+        except Shop.DoesNotExist as e:
+            capture_exception(error=e)
             response["error"] = ["فروشگاه پیدا نشد."]
             return Response(response, status=status.HTTP_400_BAD_REQUEST)
 
         try:
             media_query = scrape.read_user_media_query_data(instagram_username)
         except Exception as exc:
+            capture_exception(error=exc)
             response["error"] = [str(exc)]
             return Response(response, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
@@ -459,13 +501,19 @@ class ShopPostView(ListAPIView):
             post_data["instagram_link"] = mq_item['shortcode']
 
             post_serializer = self.serializer_class(data=post_data)
-            post_serializer.is_valid(raise_exception=True)
+            if not post_serializer.is_valid():
+                log_message_sentry('ShopPostView post post_serializer error', post_serializer.errors, request.data,
+                                   level='error')
+                return Response(post_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
             post_serializer.save()
 
             product_image_data["post"] = post_serializer.data.get('id')
             product_image_data["display_image"] = f"media/shop/{instagram_username}/{mq_item['id']}/display_image.jpg"
             product_image_ser = self.product_image_serializer_class(data=product_image_data)
-            product_image_ser.is_valid(raise_exception=True)
+            if not product_image_ser.is_valid():
+                log_message_sentry('ShopPostView post product_image_ser error', product_image_ser.errors, request.data,
+                                   level='error')
+                return Response(product_image_ser.errors, status=status.HTTP_400_BAD_REQUEST)
             product_image_ser.save()
 
             for index, child in enumerate(mq_item["children"]):
@@ -475,7 +523,10 @@ class ShopPostView(ListAPIView):
                 product_image_data[
                     "display_image"] = f"media/shop/{instagram_username}/{mq_item['id']}/{child['id']}/display_image.jpg "
                 product_image_ser = self.product_image_serializer_class(data=product_image_data)
-                product_image_ser.is_valid(raise_exception=True)
+                if not product_image_ser.is_valid():
+                    log_message_sentry('ShopPostView post product_image_ser error in for loop',
+                                       product_image_ser.errors, request.data, level='error')
+                    return Response(product_image_ser.errors, status=status.HTTP_400_BAD_REQUEST)
                 product_image_ser.save()
 
         return Response(status=status.HTTP_200_OK)
@@ -495,16 +546,19 @@ class ShopNewPostView(APIView):
             shop_id = shop.pk
             instagram_username = request.data['instagram_username']
             shop = Shop.objects.get(pk=shop_id, instagram_username=instagram_username)
-        except KeyError:
+        except KeyError as e:
+            capture_exception(error=e)
             response["error"] = ["آیدی فروشگاه ضروری است."]
             return Response(response, status=status.HTTP_400_BAD_REQUEST)
-        except Shop.DoesNotExist:
+        except Shop.DoesNotExist as e:
+            capture_exception(error=e)
             response["error"] = ["فروشگاه پیدا نشد."]
             return Response(response, status=status.HTTP_400_BAD_REQUEST)
 
         try:
             media_query = scrape.read_user_new_media_query_data(instagram_username)
         except Exception as exc:
+            capture_exception(error=exc)
             response["error"] = [str(exc)]
             return Response(response, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
@@ -524,13 +578,19 @@ class ShopNewPostView(APIView):
             post_data["instagram_link"] = mq_item['shortcode']
 
             post_serializer = self.serializer_class(data=post_data)
-            post_serializer.is_valid(raise_exception=True)
+            if not post_serializer.is_valid():
+                log_message_sentry('ShopNewPostView post post_serializer', post_serializer.errors,
+                                   request.data, level='error')
+                return Response(post_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
             post_serializer.save()
 
             product_image_data["post"] = post_serializer.data.get('id')
             product_image_data["display_image"] = f"media/shop/{instagram_username}/{mq_item['id']}/display_image.jpg"
             product_image_ser = self.product_image_serializer_class(data=product_image_data)
-            product_image_ser.is_valid(raise_exception=True)
+            if not product_image_ser.is_valid():
+                log_message_sentry('ShopNewPostView post product_image_ser', product_image_ser.errors,
+                                   request.data, level='error')
+                return Response(product_image_ser.errors, status=status.HTTP_400_BAD_REQUEST)
             product_image_ser.save()
 
             for index, child in enumerate(mq_item["children"]):
@@ -540,7 +600,10 @@ class ShopNewPostView(APIView):
                 product_image_data[
                     "display_image"] = f"media/shop/{instagram_username}/{mq_item['id']}/{child['id']}/display_image.jpg "
                 product_image_ser = self.product_image_serializer_class(data=product_image_data)
-                product_image_ser.is_valid(raise_exception=True)
+                if not product_image_ser.is_valid():
+                    log_message_sentry('ShopNewPostView post product_image_ser in for loop', product_image_ser.errors,
+                                       request.data, level='error')
+                    return Response(product_image_ser.errors, status=status.HTTP_400_BAD_REQUEST)
                 product_image_ser.save()
 
         return Response(status=status.HTTP_200_OK)
@@ -560,6 +623,7 @@ class ShopBankCreditsView(ListCreateAPIView):
 class ShopProductsPreviewView(ListAPIView):
     serializer_class = PostReadonlySerializer
     permission_classes = [AllowAny]
+
     # pagination_class = PostsListPagination
 
     def get_queryset(self):
@@ -622,7 +686,9 @@ class ProductDiscountView(APIView):
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
         discount_ser = self.serializer_class(data=request.data)
-        discount_ser.is_valid(raise_exception=True)
+        if not discount_ser.is_valid():
+            log_message_sentry('ProductDiscountView post', discount_ser.errors, request.data)
+            return Response(discount_ser.errors, status=status.HTTP_400_BAD_REQUEST)
         discount_ser.save()
 
         product_ser = ProductSerializer(product)
@@ -636,10 +702,14 @@ class ProductDiscountView(APIView):
         """ this method will inactive the last discount of product """
         product = get_object_or_404(Product, pk=product_pk)
         if request.data.get('product') != product.id:
+            log_message_sentry('ProductDiscountView put',
+                               {'error': 'product id in query is not equal to product in request data'}, request.data)
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
         discount = self.query_set.filter(product=product).last()
         if discount is None:
+            log_message_sentry('ProductDiscountView put',
+                               {'error': 'discount is None'}, request.data)
             return Response(status=status.HTTP_400_BAD_REQUEST)
         discount.is_active = False
         discount.save()
@@ -654,7 +724,9 @@ class ProductAttributeCreateView(APIView):
         data = request.data
         data['product'] = product_pk
         ser = self.serializer_class(data=data)
-        ser.is_valid(raise_exception=True)
+        if not ser.is_valid():
+            log_message_sentry('ProductAttributeCreateView post', ser.errors, request.data)
+            return Response(ser.errors, status=status.HTTP_400_BAD_REQUEST)
         ser.save()
         return Response(ser.data, status=status.HTTP_201_CREATED)
 
@@ -679,6 +751,8 @@ class ProductTagView(CreateAPIView):
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
         ser = self.serializer_class(tag, data=request.data)
-        ser.is_valid(raise_exception=True)
+        if not ser.is_valid():
+            log_message_sentry('ProductTagView put', ser.errors, request.data)
+            return Response(ser.errors, status=status.HTTP_400_BAD_REQUEST)
         ser.save()
         return Response(ser.data, status=status.HTTP_200_OK)
