@@ -13,6 +13,10 @@ import datetime
 from pathlib import Path
 import os
 
+
+import sentry_sdk
+from sentry_sdk.integrations.django import DjangoIntegration
+
 from .secret_settings import SECRET_KEY, DEBUG, ALLOWED_HOSTS, DATABASES, TERMINAL_CODE, MERCHANT_CODE
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -21,8 +25,22 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/3.2/howto/deployment/checklist/
 
-# Application definition
+# Sentry issue tracker
+sentry_sdk.init(
+    dsn="https://38114027f274485985d4365385908afc@sentry.hamravesh.com/252",
+    integrations=[DjangoIntegration()],
 
+    # Set traces_sample_rate to 1.0 to capture 100%
+    # of transactions for performance monitoring.
+    # We recommend adjusting this value in production.
+    traces_sample_rate=1.0,
+
+    # If you wish to associate users to errors (assuming you are using
+    # django.contrib.auth) you may enable sending PII data.
+    send_default_pii=True
+)
+
+# Application definition
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
