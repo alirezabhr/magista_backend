@@ -1,3 +1,5 @@
+import pickle
+
 import requests
 import json
 import hashlib
@@ -39,11 +41,18 @@ class Scraper:
         self.logged_in = False
         self.is_getting_new_media = False
 
+    def try_to_authenticate(self):
+        self.__set_cookie_from_cookiejar()
+        authenticated = self.test_authentication()
+        print('authenticated' if authenticated else 'not authenticated')
+
+        if not authenticated:
+            self.authenticate_with_login()
+
     def test_authentication(self):
         print('in test authentication')
-
         try:
-            data = self.__get_media_details('CTArg_vCiUx')
+            self.__get_media_details('CTArg_vCiUx')
             return True
         except Exception as e:
             print('exception in auth test')
@@ -78,6 +87,7 @@ class Scraper:
             logger('Login failed for ' + self.username)
             raise CustomException(503, 'Login failed')
 
+        self.save_cookies()
         return login.cookies
 
     def login_challenge(self, checkpoint_url):
@@ -108,6 +118,7 @@ class Scraper:
         else:
             logger(json.dumps(code_text))
 
+        self.save_cookies()
         return code.cookies
 
     def one_tap_web_login(self, user_id, nonce):
@@ -134,6 +145,7 @@ class Scraper:
         self.session.headers.update({'X-CSRFToken': login.cookies['csrftoken']})
         self.cookies = login.cookies
 
+        self.save_cookies()
         return login.cookies
 
     def logout(self):
@@ -146,6 +158,23 @@ class Scraper:
                 self.logged_in = False
             except requests.exceptions.RequestException:
                 logger('Failed to log out ' + self.username)
+
+    def save_cookies(self):
+        cookiejar = self.__cookiejar_file()
+        if cookiejar and os.path.exists(cookiejar):
+            with open(cookiejar, 'wb') as f:
+                pickle.dump(self.session.cookies, f)
+
+    def __set_cookie_from_cookiejar(self):
+        cookiejar = self.__cookiejar_file()
+        if cookiejar and os.path.exists(cookiejar):
+            with open(cookiejar, 'rb') as f:
+                self.session.cookies.update(pickle.load(f))
+
+    def __cookiejar_file(self):
+        file_dir = os.path.join(settings.MEDIA_ROOT, 'scraper')
+        cookiejar = os.path.join(file_dir, f'{self.username}_cookiejar.txt')
+        return cookiejar
 
     def get_data(self, url):
         response = self.session.get(url=url, timeout=CONNECT_TIMEOUT, cookies=self.cookies)
@@ -350,19 +379,12 @@ def scrape_instagram_media(username):
     scraper = Scraper(login_user=scraper_model.username, login_pass=scraper_model.password)
 
     try:
-        cookie = scraper.one_tap_web_login(scraper_model.user_id, scraper_model.nonce)
-    except:
-        try:
-            cookie = scraper.authenticate_with_login()
-        except Exception as e:
-            print('in login exception')
-            print(e)
-            scraper_model.is_working = False
-            scraper_model.save()
-            raise CustomException(503, 'Can Not Login')
-
-    if cookie:
-        scraper_model.cookie_json = json.dumps(cookie.get_dict())
+        scraper.try_to_authenticate()
+    except Exception as exc:
+        # TODO check if it needs verification or its status is 429
+        scraper_model.is_working = False
+        scraper_model.save()
+        raise exc
 
     page_info_url = USER_URL.format(username)
     data = scraper.get_data(page_info_url)
@@ -403,12 +425,27 @@ def scrape_instagram_media(username):
     return media_data
 
 
-def scrape_new_instagram_media(login_user, login_pass, user_id, last_post_shortcode):
-    scraper = Scraper(login_user=login_user, login_pass=login_pass)
-    scraper.authenticate_with_login()
+def scrape_new_instagram_media(user_id, last_post_shortcode):
+    try:
+        scraper_model = find_free_scraper()
+    except:
+        raise CustomException(503, 'There are no free scrapers available')
+
+    scraper = Scraper(login_user=scraper_model.username, login_pass=scraper_model.password)
+
+    try:
+        scraper.try_to_authenticate()
+    except Exception as exc:
+        # TODO check if it needs verification or its status is 429
+        scraper_model.is_working = False
+        scraper_model.save()
+        raise exc
+
     scraper.is_getting_new_media = True
 
     media_data = scraper.get_media_data(user_id, last_post_shortcode)
+    scraper_model.is_working = False
+    scraper_model.save()
     return media_data
 
 
