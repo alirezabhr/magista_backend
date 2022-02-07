@@ -8,6 +8,8 @@ from django.conf import settings
 
 from .constants import *
 
+from scraping.models import Scraper as ScraperModel
+
 
 def logger(message):
     print('----------\n')
@@ -37,6 +39,17 @@ class Scraper:
         self.logged_in = False
         self.is_getting_new_media = False
 
+    def test_authentication(self):
+        print('in test authentication')
+
+        try:
+            data = self.__get_media_details('CTArg_vCiUx')
+            return True
+        except Exception as e:
+            print('exception in auth test')
+            print(e)
+            return False
+
     def authenticate_with_login(self):
         """Logs in to instagram."""
         self.session.headers.update({'Referer': BASE_URL, 'user-agent': STORIES_UA})
@@ -65,6 +78,8 @@ class Scraper:
             logger('Login failed for ' + self.username)
             raise CustomException(503, 'Login failed')
 
+        return login.cookies
+
     def login_challenge(self, checkpoint_url):
         self.session.headers.update({'Referer': BASE_URL})
         req = self.session.get(BASE_URL[:-1] + checkpoint_url)
@@ -92,6 +107,34 @@ class Scraper:
                 logger('Session error %(count)s: "%(error)s"' % locals())
         else:
             logger(json.dumps(code_text))
+
+        return code.cookies
+
+    def one_tap_web_login(self, user_id, nonce):
+        print('one tap web login')
+
+        self.session.headers.update({'Referer': BASE_URL, 'user-agent': STORIES_UA})
+        print('session header updated')
+        req = self.session.get(BASE_URL)
+        print(f'req cookie: {json.dumps(req.cookies.get_dict())}')
+        self.session.headers.update({'X-CSRFToken': req.cookies['csrftoken']})
+
+        one_tap_login_data = {
+            'user_id': user_id,
+            'login_nonce': nonce,
+        }
+
+        login = self.session.post(ONE_TAP_WEB_LOGIN, data=one_tap_login_data)
+
+        print(login.status_code)
+        print(login.text)
+        if login.status_code != 200:
+            raise CustomException(503, 'Can not login with one tap web login')
+
+        self.session.headers.update({'X-CSRFToken': login.cookies['csrftoken']})
+        self.cookies = login.cookies
+
+        return login.cookies
 
     def logout(self):
         """Logs out of instagram."""
@@ -250,13 +293,21 @@ class Scraper:
                     media_versions = media['image_versions2']['candidates']
 
                 media_versions = sorted(media_versions, key=lambda m: m['height'])
-                if len(media_versions) > 5:
-                    best_candidate = media_versions[2]
-                else:
-                    best_candidate = media_versions[len(media_versions) // 2]
+
+                display_image_best_candidate = None
+                for mv in media_versions:
+                    if mv['height'] > 600:
+                        display_image_best_candidate = mv
+                        break
+
+                if display_image_best_candidate is None:
+                    display_image_best_candidate = media_versions[-1]
+
+                thumbnail_image_best_candidate = media_versions[0]
 
                 n['id'] = media['id']
-                n['display_url'] = best_candidate['url']
+                n['thumbnail_src'] = thumbnail_image_best_candidate['url']
+                n['display_url'] = display_image_best_candidate['url']
                 nodes.append(n)
 
         return nodes
@@ -266,21 +317,68 @@ class Scraper:
         return posts
 
 
-def scrape_instagram_media(login_user, login_pass, username):
-    scraper = Scraper(login_user=login_user, login_pass=login_pass)
-    scraper.authenticate_with_login()
-    page_info_url = USER_URL.format(username)
+def find_free_scraper():
+    scrapers = ScraperModel.objects.filter(is_working=False, is_active=True)
+    count = 0
+    scraper_index = 0
 
+    if scrapers.count() == 0:
+        raise Exception('All Scrapers Are Working')
+
+    for i, scraper in enumerate(scrapers):
+        if i == 0:
+            count = scraper.scrape_count
+            scraper_index = i
+            continue
+        if scraper.scrape_count < count:
+            count = scraper.scrape_count
+            scraper_index = i
+
+    scraper = scrapers[scraper_index]
+    scraper.is_working = True
+    scraper.scrape_count += 1
+    scraper.save()
+    return scraper
+
+
+def scrape_instagram_media(username):
+    try:
+        scraper_model = find_free_scraper()
+    except:
+        raise CustomException(503, 'There are no free scrapers available')
+
+    scraper = Scraper(login_user=scraper_model.username, login_pass=scraper_model.password)
+
+    try:
+        cookie = scraper.one_tap_web_login(scraper_model.user_id, scraper_model.nonce)
+    except:
+        try:
+            cookie = scraper.authenticate_with_login()
+        except Exception as e:
+            print('in login exception')
+            print(e)
+            scraper_model.is_working = False
+            scraper_model.save()
+            raise CustomException(503, 'Can Not Login')
+
+    if cookie:
+        scraper_model.cookie_json = json.dumps(cookie.get_dict())
+
+    page_info_url = USER_URL.format(username)
     data = scraper.get_data(page_info_url)
 
     try:
         user_info = json.loads(data)['graphql']['user']
     except:
         logger('cant get user info')
+        scraper_model.is_working = False
+        scraper_model.save()
         raise CustomException(503, 'cant get user info')
 
     if user_info['is_private']:
         print('Private Page')
+        scraper_model.is_working = False
+        scraper_model.save()
         raise CustomException(451, "پیج مورد نظر پرایوت است")
 
     profile_info = {
@@ -298,7 +396,10 @@ def scrape_instagram_media(login_user, login_pass, username):
     write_user_profile_info_data(username, profile_info)
 
     media_data = scraper.get_media_data(profile_info['id'], '')
-    scraper.logout()
+
+    scraper_model.is_working = False
+    scraper_model.save()
+
     return media_data
 
 
@@ -308,7 +409,6 @@ def scrape_new_instagram_media(login_user, login_pass, user_id, last_post_shortc
     scraper.is_getting_new_media = True
 
     media_data = scraper.get_media_data(user_id, last_post_shortcode)
-    scraper.logout()
     return media_data
 
 
