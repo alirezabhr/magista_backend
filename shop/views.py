@@ -19,7 +19,6 @@ from .serializers import ShopSerializer, ProductSerializer, ShopPublicSerializer
     ShopDiscountSerializer
 from logger.serializers import IssueSerializer
 
-from scraping.models import Scraper
 from scraping.service import scrape
 from utils import utils
 
@@ -28,7 +27,6 @@ class IsShopOwnerOrReadOnly(permissions.BasePermission):
     message = 'تغییر در فروشگاه مجاز نیست.'
 
     def has_object_permission(self, request, view, obj):
-        print('in has_object_permission')
         if request.method in permissions.SAFE_METHODS:
             return True
         print(request.user)
@@ -75,30 +73,6 @@ class ShopCreationRequestView(APIView):
         return Response(status=status.HTTP_201_CREATED)
 
 
-def get_free_scraper():
-    scrapers = Scraper.objects.filter(is_working=False)
-    count = 0
-    scraper_index = 0
-
-    if scrapers.count() == 0:
-        raise Exception('All Scrapers Are Working')
-
-    for i, scraper in enumerate(scrapers):
-        if i == 0:
-            count = scraper.scrape_count
-            scraper_index = i
-            continue
-        if scraper.scrape_count < count:
-            count = scraper.scrape_count
-            scraper_index = i
-
-    scraper = scrapers[scraper_index]
-    scraper.is_working = True
-    scraper.scrape_count += 1
-    scraper.save()
-    return scraper
-
-
 class ShopMediaQueryView(APIView):
     def post(self, request):
         """this method will scrape user instagram page, and get query_media data.
@@ -119,20 +93,14 @@ class ShopMediaQueryView(APIView):
             # data = scrape.scrape_instagram_media(scraper.username, scraper.password, instagram_username)
             # scrape.write_user_media_query_data(instagram_username, data)
             response = scrape.read_user_profile_info_data(instagram_username)
-            # scraper.is_working = False
-            # scraper.save()
             return Response(response, status=status.HTTP_200_OK)
         except scrape.CustomException as ex:
             response["error"] = [ex.message]
             response["type"] = 'scraper error'
-            # scraper.is_working = False
-            # scraper.save()
             return Response(response, status=ex.status)
         except Exception as exc:
             response["error"] = [str(exc)]
             response["type"] = 'system error'
-            # scraper.is_working = False
-            # scraper.save()
             return Response(response, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     def get(self, request):
@@ -216,33 +184,20 @@ class ShopMediaQueryNewPostsView(APIView):
             response["error"] = ['آیدی پیج اینستاگرام الزامی است.']
             return Response(response, status=status.HTTP_400_BAD_REQUEST)
 
-        # find scraper
-        try:
-            scraper = get_free_scraper()
-        except Exception as exc:
-            return Response({"error": str(exc)}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
-
         shop.last_scrape = timezone.now()
         shop.save()
 
         try:
-            data = scrape.scrape_new_instagram_media(scraper.username, scraper.password, shop.instagram_id,
-                                                     last_post_shortcode)
+            data = scrape.scrape_new_instagram_media(shop.instagram_id, last_post_shortcode)
             scrape.write_user_new_media_query_data(instagram_username, data)
-            scraper.is_working = False
-            scraper.save()
             return Response(data, status=status.HTTP_200_OK)
         except scrape.CustomException as ex:
             response["error"] = [ex.message]
             response["type"] = 'scraper error'
-            scraper.is_working = False
-            scraper.save()
             return Response(response, status=ex.status)
         except Exception as exc:
             response["error"] = [str(exc)]
             response["type"] = 'system error'
-            scraper.is_working = False
-            scraper.save()
             return Response(response, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     def get(self, request):
@@ -319,28 +274,16 @@ class SaveMediaView(APIView):
         except KeyError:
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
-        # find scraper
         try:
-            scraper = get_free_scraper()
-        except Exception as exc:
-            return Response({"error": str(exc)}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
-
-        try:
-            data = scrape.scrape_instagram_media(scraper.username, scraper.password, instagram_username)
+            data = scrape.scrape_instagram_media(instagram_username)
             scrape.write_user_media_query_data(instagram_username, data)
-            scraper.is_working = False
-            scraper.save()
         except scrape.CustomException as ex:
             response["error"] = [ex.message]
             response["type"] = 'scraper error'
-            scraper.is_working = False
-            scraper.save()
             return Response(response, status=ex.status)
         except Exception as exc:
             response["error"] = [str(exc)]
             response["type"] = 'system error'
-            scraper.is_working = False
-            scraper.save()
             return Response(response, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         has_next = True
