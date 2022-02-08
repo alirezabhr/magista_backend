@@ -417,7 +417,12 @@ def scrape_instagram_media(username):
 
     write_user_profile_info_data(username, profile_info)
 
-    media_data = scraper.get_media_data(profile_info['id'], '')
+    try:
+        media_data = scraper.get_media_data(profile_info['id'], '')
+    except Exception as e:
+        scraper_model.is_working = False
+        scraper_model.save()
+        raise e
 
     scraper_model.is_working = False
     scraper_model.save()
@@ -443,7 +448,13 @@ def scrape_new_instagram_media(user_id, last_post_shortcode):
 
     scraper.is_getting_new_media = True
 
-    media_data = scraper.get_media_data(user_id, last_post_shortcode)
+    try:
+        media_data = scraper.get_media_data(user_id, last_post_shortcode)
+    except Exception as e:
+        scraper_model.is_working = False
+        scraper_model.save()
+        raise e
+
     scraper_model.is_working = False
     scraper_model.save()
     return media_data
