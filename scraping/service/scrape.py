@@ -161,7 +161,7 @@ class Scraper:
 
     def save_cookies(self):
         cookiejar = self.__cookiejar_file()
-        if cookiejar and os.path.exists(cookiejar):
+        if cookiejar:
             with open(cookiejar, 'wb') as f:
                 pickle.dump(self.session.cookies, f)
 
