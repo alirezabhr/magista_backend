@@ -356,7 +356,7 @@ class ShopView(APIView):
             log_message_sentry('ShopView post', response, request.data)
             return Response(response, status=status.HTTP_400_BAD_REQUEST)
 
-        data['last_scrape'] = timezone.now()
+        data['last_scrape'] = timezone.now().__str__()
         data['profile_pic'] = f"media/shop/{instagram_username}/profile_image.jpg"
 
         ser = self.serializer_class(data=data)
