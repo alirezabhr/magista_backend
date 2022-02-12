@@ -204,12 +204,12 @@ class ShipmentSerializer(serializers.ModelSerializer):
         if attrs['national_post'] is None and attrs['online_delivery'] is None:
             raise serializers.ValidationError('need to select at least one way for shipping')
 
-        if attrs['city_free_cost'] == Shipment.FreeDelivery.OCCASIONALLY_FREE and \
+        if attrs['city_cost'] == Shipment.FreeDelivery.OCCASIONALLY_FREE and \
                 attrs['city_free_cost_from'] is None:
-            raise serializers.ValidationError('set city_free_cost_from when city_free_cost is OCCASIONALLY_FREE')
-        if attrs['country_free_cost'] == Shipment.FreeDelivery.OCCASIONALLY_FREE and \
+            raise serializers.ValidationError('set city_free_cost_from when city_cost is OCCASIONALLY_FREE')
+        if attrs['country_cost'] == Shipment.FreeDelivery.OCCASIONALLY_FREE and \
                 attrs['country_free_cost_from'] is None:
-            raise serializers.ValidationError('set country_free_cost_from when country_free_cost is OCCASIONALLY_FREE')
+            raise serializers.ValidationError('set country_free_cost_from when country_cost is OCCASIONALLY_FREE')
 
         return attrs
 
@@ -221,11 +221,11 @@ class ShipmentSerializer(serializers.ModelSerializer):
 
         shipment = Shipment.objects.create(**validated_data)
 
-        if validated_data.get('city_free_cost') == Shipment.FreeDelivery.NOT_FREE or \
-                validated_data.get('city_free_cost') == Shipment.FreeDelivery.TOTALLY_FREE:
+        if validated_data.get('city_cost') == Shipment.FreeDelivery.NOT_FREE or \
+                validated_data.get('city_cost') == Shipment.FreeDelivery.TOTALLY_FREE:
             city_free_cost_from_data = None
-        if validated_data.get('country_free_cost') == Shipment.FreeDelivery.NOT_FREE or \
-                validated_data.get('country_free_cost') == Shipment.FreeDelivery.TOTALLY_FREE:
+        if validated_data.get('country_cost') == Shipment.FreeDelivery.NOT_FREE or \
+                validated_data.get('country_cost') == Shipment.FreeDelivery.TOTALLY_FREE:
             country_free_cost_from_data = None
 
         if city_free_cost_from_data is not None:

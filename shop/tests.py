@@ -74,8 +74,8 @@ class ShopShipmentTests(APITestCase):
                     "per_kilo": 2700
                 },
                 "online_delivery": None,
-                "city_free_cost": Shipment.FreeDelivery.NOT_FREE,
-                "country_free_cost": Shipment.FreeDelivery.OCCASIONALLY_FREE,
+                "city_cost": Shipment.FreeDelivery.NOT_FREE,
+                "country_cost": Shipment.FreeDelivery.OCCASIONALLY_FREE,
                 "city_free_cost_from": None,
                 "country_free_cost_from": {
                     "type": OccasionallyFreeDelivery.AreaType.COUNTRY,
@@ -95,8 +95,8 @@ class ShopShipmentTests(APITestCase):
                     "base": 13000,
                     "per_kilo": 2300
                 },
-                "city_free_cost": Shipment.FreeDelivery.TOTALLY_FREE,
-                "country_free_cost": Shipment.FreeDelivery.NOT_FREE,
+                "city_cost": Shipment.FreeDelivery.TOTALLY_FREE,
+                "country_cost": Shipment.FreeDelivery.NOT_FREE,
                 "city_free_cost_from": None,
                 "country_free_cost_from": None
             },
@@ -109,8 +109,8 @@ class ShopShipmentTests(APITestCase):
                     "base": 13000,
                     "per_kilo": 2300
                 },
-                "city_free_cost": Shipment.FreeDelivery.TOTALLY_FREE,
-                "country_free_cost": Shipment.FreeDelivery.NOT_FREE,
+                "city_cost": Shipment.FreeDelivery.TOTALLY_FREE,
+                "country_cost": Shipment.FreeDelivery.NOT_FREE,
                 "city_free_cost_from": {
                     "type": OccasionallyFreeDelivery.AreaType.CITY,
                     "free_from": 140000
@@ -126,8 +126,8 @@ class ShopShipmentTests(APITestCase):
                     'per_kilo': 3200,
                 },
                 "online_delivery": None,
-                "city_free_cost": Shipment.FreeDelivery.NOT_FREE,
-                "country_free_cost": Shipment.FreeDelivery.NOT_FREE,
+                "city_cost": Shipment.FreeDelivery.NOT_FREE,
+                "country_cost": Shipment.FreeDelivery.NOT_FREE,
                 "city_free_cost_from": None,
                 "country_free_cost_from": None
             },
