@@ -13,11 +13,11 @@ from rest_framework.pagination import PageNumberPagination
 from logger.log_sentry import log_message_sentry
 from sms_service.sms_service import SMSService
 from .models import Shop, Product, BankCredit, ProductAttribute, Post, ProductDiscount, TagLocation, ProductImage, \
-    ShopDiscount
+    ShopDiscount, Shipment
 from .serializers import ShopSerializer, ProductSerializer, ShopPublicSerializer, ProductDiscountSerializer, \
     BankCreditSerializer, ProductAttributeSerializer, PostSerializer, \
     ProductImageSerializer, PostReadonlySerializer, TagLocationSerializer, ProductImageReadonlySerializer, \
-    ShopDiscountSerializer
+    ShopDiscountSerializer, ShipmentSerializer
 from logger.serializers import IssueSerializer
 
 from scraping.service import scrape
@@ -370,6 +370,11 @@ class ShopView(APIView):
         shops = self.query_set.filter(vendor_id=vendor_pk)
         ser = self.serializer_class(shops, many=True)
         return Response(ser.data, status=status.HTTP_200_OK)
+
+
+class ShopShipmentView(CreateAPIView):
+    serializer_class = ShipmentSerializer
+    queryset = Shipment.objects.all()
 
 
 class ShopBioView(APIView):
