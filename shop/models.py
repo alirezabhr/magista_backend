@@ -36,8 +36,6 @@ class Shop(models.Model):
     last_scrape = models.DateTimeField()
     created_at = models.DateTimeField(auto_now_add=True)
 
-
-
     @property
     def rate(self):
         rate_sum = 0
@@ -84,6 +82,70 @@ class Shop(models.Model):
 
     def __str__(self):
         return f'{self.id}: {self.vendor.username} | {self.instagram_username}'
+
+
+class Shipment(models.Model):
+    class FreeDelivery(models.IntegerChoices):
+        NOT_FREE = 0
+        OCCASIONALLY_FREE = 1
+        TOTALLY_FREE = 2
+
+    shop = models.OneToOneField(Shop, models.CASCADE, related_name='shop_shipment')
+    send_everywhere = models.BooleanField()     # true: entire country, false: only in city
+
+    city_free_cost = models.IntegerField(choices=FreeDelivery.choices)
+    country_free_cost = models.IntegerField(choices=FreeDelivery.choices)
+
+    @property
+    def national_post(self):
+        # None: this shop won't send by national post
+        return DeliveryPrice.objects.get(shipment=self, type=DeliveryPrice.DeliveryType.NATIONAL_POST)
+
+    @property
+    def online_delivery(self):
+        # None: this shop won't send by online delivery
+        return DeliveryPrice.objects.get(shipment=self, type=DeliveryPrice.DeliveryType.ONLINE_DELIVERY)
+
+    @property
+    def city_free_cost_from(self):
+        # None: this shop doesn't have free delivery in city
+        if self.city_free_cost == self.FreeDelivery.OCCASIONALLY_FREE:
+            return OccasionallyFreeDelivery.objects.get(shipment=self, type=OccasionallyFreeDelivery.AreaType.CITY)
+        return None
+
+    @property
+    def country_free_cost_from(self):
+        # None: this shop doesn't have free delivery in country
+        if self.country_free_cost == self.FreeDelivery.OCCASIONALLY_FREE:
+            return OccasionallyFreeDelivery.objects.get(shipment=self, type=OccasionallyFreeDelivery.AreaType.COUNTRY)
+        return None
+
+
+class DeliveryPrice(models.Model):
+    class DeliveryType(models.IntegerChoices):
+        NATIONAL_POST = 0
+        ONLINE_DELIVERY = 1
+
+    shipment = models.ForeignKey(Shipment, on_delete=models.PROTECT, related_name='delivery_price_shipment')
+    type = models.IntegerField(choices=DeliveryType.choices)
+    base = models.PositiveIntegerField()
+    per_kilo = models.PositiveIntegerField()
+
+    class Meta:
+        unique_together = ('shipment', 'type')
+
+
+class OccasionallyFreeDelivery(models.Model):
+    class AreaType(models.IntegerChoices):
+        CITY = 0
+        COUNTRY = 1
+
+    shipment = models.ForeignKey(Shipment, on_delete=models.PROTECT, related_name='occasionally_free_shipment')
+    type = models.IntegerField(choices=AreaType.choices)
+    free_from = models.PositiveIntegerField()
+
+    class Meta:
+        unique_together = ('shipment', 'type')
 
 
 class BankCredit(models.Model):
