@@ -9,11 +9,6 @@ from user.models import User
 
 # Create your models here.
 class Shop(models.Model):
-    class FreeDelivery(models.IntegerChoices):
-        NOT_FREE = 0
-        IN_CITY = 1
-        IN_COUNTRY = 2
-
     class PreparationTime(models.IntegerChoices):
         TWO_HOURS = 0
         TWELVE_HOURS = 1
@@ -29,7 +24,6 @@ class Shop(models.Model):
     city = models.CharField(max_length=30)
     address = models.TextField()
     bio = models.CharField(max_length=400, blank=True)
-    delivery = models.IntegerField(choices=FreeDelivery.choices)
     preparation = models.IntegerField(choices=PreparationTime.choices)
     profile_pic = models.CharField(max_length=80, null=True)
     commission_percent = models.SmallIntegerField(default=5)
@@ -92,7 +86,6 @@ class Shipment(models.Model):
 
     shop = models.OneToOneField(Shop, models.CASCADE, related_name='shop_shipment')
     send_everywhere = models.BooleanField()     # true: entire country, false: only in city
-
     city_free_cost = models.IntegerField(choices=FreeDelivery.choices)
     country_free_cost = models.IntegerField(choices=FreeDelivery.choices)
 
