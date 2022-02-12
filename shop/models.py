@@ -86,8 +86,8 @@ class Shipment(models.Model):
 
     shop = models.OneToOneField(Shop, models.CASCADE, related_name='shop_shipment')
     send_everywhere = models.BooleanField()     # true: entire country, false: only in city
-    city_free_cost = models.IntegerField(choices=FreeDelivery.choices)
-    country_free_cost = models.IntegerField(choices=FreeDelivery.choices)
+    city_cost = models.IntegerField(choices=FreeDelivery.choices)
+    country_cost = models.IntegerField(choices=FreeDelivery.choices)
 
     @property
     def national_post(self):
@@ -102,14 +102,14 @@ class Shipment(models.Model):
     @property
     def city_free_cost_from(self):
         # None: this shop doesn't have free delivery in city
-        if self.city_free_cost == self.FreeDelivery.OCCASIONALLY_FREE:
+        if self.city_cost == self.FreeDelivery.OCCASIONALLY_FREE:
             return OccasionallyFreeDelivery.objects.get(shipment=self, type=OccasionallyFreeDelivery.AreaType.CITY)
         return None
 
     @property
     def country_free_cost_from(self):
         # None: this shop doesn't have free delivery in country
-        if self.country_free_cost == self.FreeDelivery.OCCASIONALLY_FREE:
+        if self.country_cost == self.FreeDelivery.OCCASIONALLY_FREE:
             return OccasionallyFreeDelivery.objects.get(shipment=self, type=OccasionallyFreeDelivery.AreaType.COUNTRY)
         return None
 
