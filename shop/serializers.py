@@ -199,6 +199,8 @@ class ShipmentSerializer(serializers.ModelSerializer):
         return value
 
     def validate(self, attrs):
+        if attrs['send_everywhere'] is True and attrs['country_cost'] is None:
+            raise serializers.ValidationError('national cost is required')
         if attrs['send_everywhere'] is True and attrs['national_post'] is None:
             raise serializers.ValidationError('national post required when send_everywhere is True')
         if attrs['national_post'] is None and attrs['online_delivery'] is None:
@@ -219,6 +221,8 @@ class ShipmentSerializer(serializers.ModelSerializer):
         city_free_cost_from_data = validated_data.pop('city_free_cost_from')
         country_free_cost_from_data = validated_data.pop('country_free_cost_from')
 
+        if validated_data.get('send_everywhere') is False:
+            validated_data['country_cost'] = None
         shipment = Shipment.objects.create(**validated_data)
 
         if validated_data.get('city_cost') == Shipment.FreeDelivery.NOT_FREE or \
