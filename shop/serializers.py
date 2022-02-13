@@ -128,7 +128,7 @@ class ShipmentSerializer(serializers.ModelSerializer):
                 national_post_instance.per_kilo = national_post_data.get('per_kilo')
                 national_post_instance.save()
             except DeliveryPrice.DoesNotExist:      # not found so create it
-                DeliveryPrice.objects.create(shipment=instance.id, **national_post_data)
+                DeliveryPrice.objects.create(shipment=instance, **national_post_data)
 
         # online delivery
         if validated_data.get('has_online_delivery'):
@@ -139,7 +139,7 @@ class ShipmentSerializer(serializers.ModelSerializer):
                 online_delivery_instance.per_kilo = online_delivery_data.get('per_kilo')
                 online_delivery_instance.save()
             except DeliveryPrice.DoesNotExist:      # not found so create it
-                DeliveryPrice.objects.create(shipment=instance.id, **online_delivery_data)
+                DeliveryPrice.objects.create(shipment=instance, **online_delivery_data)
 
         # city cost
         if validated_data.get('city_cost') == Shipment.FreeDelivery.OCCASIONALLY_FREE:
@@ -149,17 +149,17 @@ class ShipmentSerializer(serializers.ModelSerializer):
                 city_cost.free_from = city_free_cost_from_data.get('free_from')
                 city_cost.save()
             except OccasionallyFreeDelivery.DoesNotExist:   # not found so create it
-                OccasionallyFreeDelivery.objects.create(shipment=instance.id, **online_delivery_data)
+                OccasionallyFreeDelivery.objects.create(shipment=instance, **city_free_cost_from_data)
 
         # country cost
         if validated_data.get('country_cost') == Shipment.FreeDelivery.OCCASIONALLY_FREE:
             try:    # try to update it
                 country_cost = OccasionallyFreeDelivery.objects.get(shipment=instance.id,
-                                                                 type=OccasionallyFreeDelivery.AreaType.COUNTRY)
+                                                                    type=OccasionallyFreeDelivery.AreaType.COUNTRY)
                 country_cost.free_from = country_free_cost_from_data.get('free_from')
                 country_cost.save()
             except OccasionallyFreeDelivery.DoesNotExist:   # not found so create it
-                OccasionallyFreeDelivery.objects.create(shipment=instance.id, **online_delivery_data)
+                OccasionallyFreeDelivery.objects.create(shipment=instance, **country_free_cost_from_data)
 
         return instance
 
