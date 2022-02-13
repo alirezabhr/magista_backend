@@ -123,6 +123,9 @@ class Shipment(models.Model):
             return OccasionallyFreeDelivery.objects.get(shipment=self, type=OccasionallyFreeDelivery.AreaType.COUNTRY)
         return None
 
+    def __str__(self):
+        return f'{self.id}=> shop: {self.shop.instagram_username}'
+
 
 class DeliveryPrice(models.Model):
     class DeliveryType(models.IntegerChoices):
@@ -137,6 +140,9 @@ class DeliveryPrice(models.Model):
     class Meta:
         unique_together = ('shipment', 'type')
 
+    def __str__(self):
+        return f'{self.id}=> shipment: {self.shipment.id} | shop: {self.shipment.shop.instagram_username}'
+
 
 class OccasionallyFreeDelivery(models.Model):
     class AreaType(models.IntegerChoices):
@@ -149,6 +155,9 @@ class OccasionallyFreeDelivery(models.Model):
 
     class Meta:
         unique_together = ('shipment', 'type')
+
+    def __str__(self):
+        return f'{self.id}=> shipment: {self.shipment.id} | shop: {self.shipment.shop.instagram_username}'
 
 
 class BankCredit(models.Model):
