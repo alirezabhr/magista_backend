@@ -376,6 +376,15 @@ class ShopShipmentView(CreateAPIView):
     serializer_class = ShipmentSerializer
     queryset = Shipment.objects.all()
 
+    def put(self, request, shop_pk):
+        shipment = get_object_or_404(Shipment, shop=shop_pk)
+        ser = self.serializer_class(shipment, data=request.data)
+        if not ser.is_valid():
+            log_message_sentry('ShopShipmentView put', ser.errors, request.data)
+            return Response(ser.errors, status=status.HTTP_400_BAD_REQUEST)
+        ser.save()
+        return Response(ser.data, status=status.HTTP_200_OK)
+
 
 class ShopBioView(APIView):
     serializer_class = ShopSerializer
