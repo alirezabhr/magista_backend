@@ -131,7 +131,77 @@ class ShopShipmentTests(APITestCase):
                 "city_free_cost_from": None,
                 "country_free_cost_from": None
             },
+            {
+                "shop": 5,
+                "send_everywhere": False,
+                "national_post": {
+                    'type': DeliveryPrice.DeliveryType.NATIONAL_POST,
+                    'base': 13000,
+                    'per_kilo': 2700,
+                },
+                "online_delivery": None,
+                "city_cost": Shipment.FreeDelivery.NOT_FREE,
+                "country_cost": None,
+                "city_free_cost_from": None,
+                "country_free_cost_from": None
+            },
+            {
+                "shop": 6,
+                "send_everywhere": False,
+                "national_post": None,
+                "online_delivery": {
+                    'type': DeliveryPrice.DeliveryType.ONLINE_DELIVERY,
+                    'base': 15000,
+                    'per_kilo': 2000,
+                },
+                "city_cost": Shipment.FreeDelivery.OCCASIONALLY_FREE,
+                "country_cost": None,
+                "city_free_cost_from": {
+                    "type": OccasionallyFreeDelivery.AreaType.CITY,
+                    "free_from": 140000
+                },
+                "country_free_cost_from": None
+            },
+            {
+                "shop": 7,
+                "send_everywhere": True,
+                "national_post": {
+                    'type': DeliveryPrice.DeliveryType.NATIONAL_POST,
+                    'base': 13000,
+                    'per_kilo': 2700,
+                },
+                "online_delivery": None,
+                "city_cost": Shipment.FreeDelivery.OCCASIONALLY_FREE,
+                "country_cost": Shipment.FreeDelivery.NOT_FREE,
+                "city_free_cost_from": {
+                    "type": OccasionallyFreeDelivery.AreaType.CITY,
+                    "free_from": 120000
+                },
+                "country_free_cost_from": None
+            },
+            {
+                "shop": 8,
+                "send_everywhere": True,
+                "national_post": {
+                    'type': DeliveryPrice.DeliveryType.NATIONAL_POST,
+                    'base': 13000,
+                    'per_kilo': 2700,
+                },
+                "online_delivery": {
+                    'type': DeliveryPrice.DeliveryType.ONLINE_DELIVERY,
+                    'base': 17000,
+                    'per_kilo': 4600,
+                },
+                "city_cost": Shipment.FreeDelivery.OCCASIONALLY_FREE,
+                "country_cost": Shipment.FreeDelivery.NOT_FREE,
+                "city_free_cost_from": {
+                    "type": OccasionallyFreeDelivery.AreaType.CITY,
+                    "free_from": 120000
+                },
+                "country_free_cost_from": None
+            },
         ]
+
         for index, data in enumerate(data_set):
             instagram_username = ''.join(random.choices(string.ascii_uppercase + string.digits, k=10))
             instagram_id = random.randint(123456789, 999999999)
