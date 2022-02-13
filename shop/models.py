@@ -86,18 +86,24 @@ class Shipment(models.Model):
 
     shop = models.OneToOneField(Shop, models.CASCADE, related_name='shop_shipment')
     send_everywhere = models.BooleanField()     # true: entire country, false: only in city
+    has_national_post = models.BooleanField()
+    has_online_delivery = models.BooleanField()
     city_cost = models.IntegerField(choices=FreeDelivery.choices)
     country_cost = models.IntegerField(choices=FreeDelivery.choices, null=True)     # null = send_everywhere is false
 
     @property
     def national_post(self):
         # None: this shop won't send by national post
-        return DeliveryPrice.objects.get(shipment=self, type=DeliveryPrice.DeliveryType.NATIONAL_POST)
+        if self.has_national_post:
+            return DeliveryPrice.objects.get(shipment=self, type=DeliveryPrice.DeliveryType.NATIONAL_POST)
+        return None
 
     @property
     def online_delivery(self):
         # None: this shop won't send by online delivery
-        return DeliveryPrice.objects.get(shipment=self, type=DeliveryPrice.DeliveryType.ONLINE_DELIVERY)
+        if self.has_online_delivery:
+            return DeliveryPrice.objects.get(shipment=self, type=DeliveryPrice.DeliveryType.ONLINE_DELIVERY)
+        return None
 
     @property
     def city_free_cost_from(self):
