@@ -13,7 +13,7 @@ from rest_framework.pagination import PageNumberPagination
 from logger.log_sentry import log_message_sentry
 from sms_service.sms_service import SMSService
 from .models import Shop, Product, BankCredit, ProductAttribute, Post, ProductDiscount, TagLocation, ProductImage, \
-    ShopDiscount, Shipment
+    ShopDiscount, Shipment, DeliveryPrice
 from .serializers import ShopSerializer, ProductSerializer, ShopPublicSerializer, ProductDiscountSerializer, \
     BankCreditSerializer, ProductAttributeSerializer, PostSerializer, \
     ProductImageSerializer, PostReadonlySerializer, TagLocationSerializer, ProductImageReadonlySerializer, \
@@ -340,6 +340,27 @@ class ShopView(APIView):
     serializer_class = ShopSerializer
     query_set = Shop.objects.all()
 
+    def create_default_shipment(self, shop_id):
+        data = {
+            "shop": shop_id,
+            "send_everywhere": True,
+            "has_national_post": True,
+            "has_online_delivery": False,
+            "national_post": {
+                "type": DeliveryPrice.DeliveryType.NATIONAL_POST,
+                "base": 13000,
+                "per_kilo": 2700
+            },
+            "online_delivery": None,
+            "city_cost": Shipment.FreeDelivery.NOT_FREE,
+            "country_cost": Shipment.FreeDelivery.NOT_FREE,
+            "city_free_cost_from": None,
+            "country_free_cost_from": None
+        }
+        ser = ShipmentSerializer(data=data)
+        ser.is_valid(raise_exception=True)
+        ser.save()
+
     def post(self, request, vendor_pk):
         response = {}
         data = request.data
@@ -364,6 +385,9 @@ class ShopView(APIView):
             log_message_sentry('ShopView post', ser.errors, request.data)
             return Response(ser.errors, status=status.HTTP_400_BAD_REQUEST)
         ser.save()
+
+        self.create_default_shipment(ser.data.get('id'))
+
         return Response(ser.data, status=status.HTTP_201_CREATED)
 
     def get(self, request, vendor_pk):
