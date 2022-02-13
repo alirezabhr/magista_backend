@@ -31,6 +31,10 @@ class Shop(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     @property
+    def delivery(self):
+        return Shipment.objects.get(shop=self)
+
+    @property
     def rate(self):
         rate_sum = 0
         count = 0
