@@ -87,7 +87,7 @@ class Shipment(models.Model):
     shop = models.OneToOneField(Shop, models.CASCADE, related_name='shop_shipment')
     send_everywhere = models.BooleanField()     # true: entire country, false: only in city
     city_cost = models.IntegerField(choices=FreeDelivery.choices)
-    country_cost = models.IntegerField(choices=FreeDelivery.choices)
+    country_cost = models.IntegerField(choices=FreeDelivery.choices, null=True)     # null = send_everywhere is false
 
     @property
     def national_post(self):
