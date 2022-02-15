@@ -91,12 +91,23 @@ class Order(models.Model):
             return 0
 
     @property
+    def delivery(self):
+        return OrderDeliveryPrice.objects.get(order=self)
+
+    @property
+    def delivery_cost(self):
+        delivery = self.delivery
+        if delivery is not None:
+            return delivery.base
+        return 0
+
+    @property
     def total_discount_amount(self):
         return self.shop_discount_amount() + self.total_order_item_discount_amount()
 
     @property
     def final_price(self):
-        return self.total_final_price() - self.shop_discount_amount()
+        return self.total_final_price() - self.shop_discount_amount() + self.delivery_cost
 
     @property
     def status_text(self):
@@ -126,3 +137,17 @@ class OrderShopDiscount(models.Model):
 
     def __str__(self):
         return f"id: {self.id} | order: {self.order.id} | code: {self.shop_discount.code}"
+
+
+class OrderDeliveryPrice(models.Model):
+    order = models.OneToOneField(Order, on_delete=models.CASCADE, unique=True)
+    delivery_id = models.IntegerField()    # like foreign key
+    type = models.IntegerField()
+    base = models.PositiveIntegerField()
+    per_kilo = models.PositiveIntegerField()
+    destination_province = models.CharField(max_length=30)
+    destination_city = models.CharField(max_length=30)
+    destination_address = models.TextField()    # address + postal code
+
+    def __str__(self):
+        return f'{self.id}=> shop: {self.order.shop.instagram_username}'

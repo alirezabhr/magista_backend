@@ -2,8 +2,14 @@ from rest_framework import serializers
 
 from shop.models import Product
 from user.serializers import CustomerSerializer
-from .models import OrderItem, Order, Invoice, OrderShopDiscount
+from .models import OrderItem, Order, Invoice, OrderShopDiscount, OrderDeliveryPrice
 from shop.serializers import ProductReadonlySerializer
+
+
+class OrderDeliveryPriceSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = OrderDeliveryPrice
+        fields = '__all__'
 
 
 class OrderItemRetrieveSerializer(serializers.ModelSerializer):
@@ -22,6 +28,8 @@ class OrderRetrieveSerializer(serializers.ModelSerializer):
     final_price = serializers.ReadOnlyField()
     has_discount_code = serializers.ReadOnlyField()
     status_text = serializers.ReadOnlyField()
+    delivery = OrderDeliveryPriceSerializer(read_only=True)
+    delivery_cost = serializers.ReadOnlyField()
     updated_at = serializers.DateTimeField(format="%Y-%m-%d %H:%M:%S", read_only=True)
     created_at = serializers.DateTimeField(format="%Y-%m-%d %H:%M:%S", read_only=True)
 
@@ -56,6 +64,8 @@ class OrderSerializer(serializers.ModelSerializer):
     final_price = serializers.ReadOnlyField()
     has_discount_code = serializers.ReadOnlyField()
     status_text = serializers.ReadOnlyField()
+    delivery = OrderDeliveryPriceSerializer(read_only=True)
+    delivery_cost = serializers.ReadOnlyField()
     updated_at = serializers.DateTimeField(format="%Y-%m-%d %H:%M:%S", read_only=True)
     created_at = serializers.DateTimeField(format="%Y-%m-%d %H:%M:%S", read_only=True)
 
@@ -80,6 +90,7 @@ class CartOrderItemSerializer(serializers.Serializer):
 
 class CartShopOrdersSerializer(serializers.Serializer):
     shop_id = serializers.IntegerField()
+    delivery_id = serializers.IntegerField()
     order_items = CartOrderItemSerializer(many=True)
 
 
