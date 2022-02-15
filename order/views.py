@@ -6,10 +6,11 @@ from rest_framework.response import Response
 from rest_framework.generics import get_object_or_404, ListAPIView
 
 from logger.log_sentry import log_message_sentry
-from shop.models import Product, Shop, ShopDiscount
+from shop.models import Product, Shop, ShopDiscount, DeliveryPrice
+from user.models import Customer
 from .models import Order, Invoice, OrderItem, OrderShopDiscount
 from .serializers import OrderSerializer, CartSerializer, OrderItemSerializer, OrderRetrieveSerializer, \
-    InvoiceSerializer, OrderItemDateTimeSerializer, OrderShopDiscountSerializer
+    InvoiceSerializer, OrderItemDateTimeSerializer, OrderShopDiscountSerializer, OrderDeliveryPriceSerializer
 
 from sentry_sdk import capture_exception
 
@@ -19,6 +20,7 @@ class CartView(APIView):
     serializer_class = CartSerializer
     order_serializer_class = OrderSerializer
     invoice_serializer_class = InvoiceSerializer
+    delivery_serializer_class = OrderDeliveryPriceSerializer
 
     def post(self, request):     # create orders (just for customer)
         data = request.data
@@ -28,15 +30,19 @@ class CartView(APIView):
             return Response(cart_ser.errors, status=status.HTTP_400_BAD_REQUEST)
 
         order_list = []
+        customer = get_object_or_404(Customer, id=data['customer_id'])
 
         invoice_data = {
-            'customer': data['customer_id']
+            'customer': customer.id
         }
         invoice_ser = self.invoice_serializer_class(data=invoice_data)
         invoice_ser.is_valid(raise_exception=True)
         invoice = invoice_ser.save()
 
         for order_sample in data['cart']:
+            delivery = get_object_or_404(DeliveryPrice, id=order_sample['delivery_id'], shipment__shop__id=order_sample['shop_id'])
+
+            # Create Order Object
             order_data = {
                 'invoice': invoice.id,
                 'shop': order_sample['shop_id'],
@@ -49,6 +55,24 @@ class CartView(APIView):
                 return Response(order_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
             order = order_serializer.save()
 
+            # Create Order Delivery Price Object
+            delivery_data = {
+                'order': order.id,
+                'delivery_id': delivery.id,
+                'type': delivery.type,
+                'base': delivery.base,
+                'per_kilo': delivery.per_kilo,
+                'destination_province': customer.province,
+                'destination_city': customer.city,
+                'destination_address': customer.address + '\nکد پستی: ' + customer.postal_code,
+            }
+            delivery_serializer = self.delivery_serializer_class(data=delivery_data)
+            if not delivery_serializer.is_valid():
+                log_message_sentry('CartView post delivery_serializer', delivery_serializer.errors, request.data)
+                return Response(delivery_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            delivery_serializer.save()
+
+            # Create Order Item Objects
             for order_item in order_sample['order_items']:
                 try:
                     product = Product.objects.get(pk=order_item['product']['id'])
