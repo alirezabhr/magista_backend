@@ -137,8 +137,6 @@ class OrderView(APIView):
                 'shop': order.shop.id,
                 'status': new_status,
             }
-            if new_status == Order.Status.SHIPPED:
-                payload['shipped_by'] = request.data['shipped_by']
         except KeyError as e:
             capture_exception(error=e)
             return Response(status=status.HTTP_400_BAD_REQUEST)

@@ -35,17 +35,10 @@ class Order(models.Model):
         RECEIVED = 4
         CANCELED = 5
 
-    class ShippingOptions(models.IntegerChoices):
-        PERSONAL_DELIVERY = 0
-        ONLINE_DELIVERY = 1
-        OFFLINE_DELIVERY = 2
-        NATIONAL_POST = 3
-
     invoice = models.ForeignKey(Invoice, models.PROTECT)
     shop = models.ForeignKey('shop.Shop', models.PROTECT)
     status = models.IntegerField(choices=Status.choices)
     rate = models.SmallIntegerField(null=True)
-    shipped_by = models.IntegerField(null=True, choices=ShippingOptions.choices)
     paid_at = models.DateTimeField(null=True)
     verified_at = models.DateTimeField(null=True)
     shipped_at = models.DateTimeField(null=True)
