@@ -13,6 +13,9 @@ from .constants import *
 from scraping.models import Scraper as ScraperModel
 
 
+SCRAPER_SERVICE_BASE_URL = settings.SCRAPER_SERVICE_BASE_URL
+
+
 def logger(message):
     print('----------\n')
     print(message)
@@ -370,38 +373,24 @@ def find_free_scraper():
     return scraper
 
 
+def api_scrape_instagram_media(username):
+    url = SCRAPER_SERVICE_BASE_URL + f'scrape/instagram-media/{username}/'
+    return requests.get(url)
+
+
+def api_scrape_new_instagram_media(user_id, last_post_shortcode):
+    url = SCRAPER_SERVICE_BASE_URL + f'scrape/instagram-new-media/{user_id}/{last_post_shortcode}/'
+    return requests.get(url)
+
+
 def scrape_instagram_media(username):
-    try:
-        scraper_model = find_free_scraper()
-    except:
-        raise CustomException(503, 'There are no free scrapers available')
+    response = api_scrape_instagram_media(username)
+    data = json.loads(response.text)
 
-    scraper = Scraper(login_user=scraper_model.username, login_pass=scraper_model.password)
+    if response.status_code != 200:
+        raise CustomException(data['status'], data['message'])
 
-    try:
-        scraper.try_to_authenticate()
-    except Exception as exc:
-        # TODO check if it needs verification or its status is 429
-        scraper_model.is_working = False
-        scraper_model.save()
-        raise exc
-
-    page_info_url = USER_URL.format(username)
-    data = scraper.get_data(page_info_url)
-
-    try:
-        user_info = json.loads(data)['graphql']['user']
-    except:
-        logger('cant get user info')
-        scraper_model.is_working = False
-        scraper_model.save()
-        raise CustomException(503, 'cant get user info')
-
-    if user_info['is_private']:
-        print('Private Page')
-        scraper_model.is_working = False
-        scraper_model.save()
-        raise CustomException(451, "پیج مورد نظر پرایوت است")
+    user_info = data['user_info']
 
     profile_info = {
         'username': username,
@@ -417,46 +406,20 @@ def scrape_instagram_media(username):
 
     write_user_profile_info_data(username, profile_info)
 
-    try:
-        media_data = scraper.get_media_data(profile_info['id'], '')
-    except Exception as e:
-        scraper_model.is_working = False
-        scraper_model.save()
-        raise e
-
-    scraper_model.is_working = False
-    scraper_model.save()
+    media_data = data['media_data']
 
     return media_data
 
 
 def scrape_new_instagram_media(user_id, last_post_shortcode):
-    try:
-        scraper_model = find_free_scraper()
-    except:
-        raise CustomException(503, 'There are no free scrapers available')
+    response = api_scrape_new_instagram_media(user_id, last_post_shortcode)
+    data = json.loads(response.text)
 
-    scraper = Scraper(login_user=scraper_model.username, login_pass=scraper_model.password)
+    if response.status_code != 200:
+        raise CustomException(data['status'], data['message'])
 
-    try:
-        scraper.try_to_authenticate()
-    except Exception as exc:
-        # TODO check if it needs verification or its status is 429
-        scraper_model.is_working = False
-        scraper_model.save()
-        raise exc
+    media_data = data['media_data']
 
-    scraper.is_getting_new_media = True
-
-    try:
-        media_data = scraper.get_media_data(user_id, last_post_shortcode)
-    except Exception as e:
-        scraper_model.is_working = False
-        scraper_model.save()
-        raise e
-
-    scraper_model.is_working = False
-    scraper_model.save()
     return media_data
 
 
