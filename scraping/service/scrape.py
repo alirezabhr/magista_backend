@@ -390,13 +390,13 @@ def scrape_instagram_media(username):
     if response.status_code != 200:
         raise CustomException(data['status'], data['message'])
 
-    user_info = data['user_info']
+    user_info = data['user_data']
 
     profile_info = {
         'username': username,
         'id': user_info['id'],
         'is_private': user_info['is_private'],
-        'posts_count': user_info['edge_owner_to_timeline_media']['count'],
+        'posts_count': user_info['posts_count'],
         'profile_pic_url': user_info['profile_pic_url'],
         'is_business_account': user_info['is_business_account'],
         'is_professional_account': user_info['is_professional_account'],
