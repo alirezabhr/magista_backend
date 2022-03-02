@@ -360,6 +360,7 @@ class ShopView(APIView):
         ser = ShipmentSerializer(data=data)
         ser.is_valid(raise_exception=True)
         ser.save()
+        return ser.data
 
     def post(self, request, vendor_pk):
         response = {}
@@ -386,9 +387,11 @@ class ShopView(APIView):
             return Response(ser.errors, status=status.HTTP_400_BAD_REQUEST)
         ser.save()
 
-        self.create_default_shipment(ser.data.get('id'))
+        shipment_data = self.create_default_shipment(ser.data.get('id'))
+        response = ser.data
+        response['delivery'] = shipment_data
 
-        return Response(ser.data, status=status.HTTP_201_CREATED)
+        return Response(response, status=status.HTTP_201_CREATED)
 
     def get(self, request, vendor_pk):
         shops = self.query_set.filter(vendor_id=vendor_pk)
