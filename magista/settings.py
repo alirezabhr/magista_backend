@@ -17,7 +17,7 @@ import os
 import sentry_sdk
 from sentry_sdk.integrations.django import DjangoIntegration
 
-from .secret_settings import SECRET_KEY, DEBUG, ALLOWED_HOSTS, DATABASES, TERMINAL_CODE, MERCHANT_CODE
+from .secret_settings import SECRET_KEY, DEBUG, ALLOWED_HOSTS, DATABASES, TERMINAL_CODE, MERCHANT_CODE, SENTRY_DSN
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -27,7 +27,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # Sentry issue tracker
 sentry_sdk.init(
-    dsn="https://38114027f274485985d4365385908afc@sentry.hamravesh.com/252",
+    dsn=SENTRY_DSN,
     integrations=[DjangoIntegration()],
 
     # Set traces_sample_rate to 1.0 to capture 100%

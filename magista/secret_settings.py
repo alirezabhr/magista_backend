@@ -47,3 +47,5 @@ DATABASES = __debug_db if mode == ProjectMode.Debug else __prod_db
 
 TERMINAL_CODE = 2311496
 MERCHANT_CODE = 5059538
+
+SENTRY_DSN = 'https://3a4be8a90d4c4a75b25709d253425f17@sentry.hamravesh.com/280' if mode == ProjectMode.Debug else 'https://38114027f274485985d4365385908afc@sentry.hamravesh.com/252'
