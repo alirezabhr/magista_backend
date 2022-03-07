@@ -59,6 +59,7 @@ INSTALLED_APPS = [
     'logger',
     'payment',
     'scraping',
+    'static',
 ]
 
 MIDDLEWARE = [
@@ -165,3 +166,4 @@ CORS_ORIGIN_ALLOW_ALL = True
 
 SCRAPER_PAGINATION_SIZE = 3
 SCRAPER_SERVICE_BASE_URL = 'http://193.141.126.61/'
+# SCRAPER_SERVICE_BASE_URL = 'http://127.0.0.1:8001/'

@@ -27,7 +27,7 @@ urlpatterns = [
     path('order/', include('order.urls')),
     path('payment/', include('payment.urls')),
     path('logger/', include('logger.urls')),
-    path('homepage-images-url/', views.homepage_images_url),
+    path('static-files/', include('static.urls')),
     path('newest-products/', views.NewestProductsView.as_view()),
     path('discounted-products/', views.DiscountedProductsView.as_view()),
     path('migration-helper/', views.MigrationHelper.as_view()),
