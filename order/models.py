@@ -85,7 +85,7 @@ class Order(models.Model):
 
     @property
     def delivery(self):
-        return OrderDeliveryPrice.objects.get(order=self)
+        return OrderDeliveryPrice.objects.filter(order=self).last()
 
     @property
     def delivery_cost(self):
