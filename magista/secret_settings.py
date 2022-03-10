@@ -41,7 +41,7 @@ SECRET_KEY = 'django-insecure-4xaah-z$9v_qyr6&_-st#vjjbdyvh@0m%8d-x(ew-9+4)9n0@=
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True if mode == ProjectMode.Debug else False
 
-ALLOWED_HOSTS = ['*'] if mode == ProjectMode.Debug else ['.magista.ir', '194.5.205.48']
+ALLOWED_HOSTS = ['*'] if mode == ProjectMode.Debug else ['.magista.ir', '23.88.127.33']
 
 DATABASES = __debug_db if mode == ProjectMode.Debug else __prod_db
 
