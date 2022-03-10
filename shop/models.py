@@ -64,7 +64,7 @@ class Shop(models.Model):
                                            invoice__created_at__range=date_time_range)
         amount = 0
         for order in order_query:
-            amount += order.total_price
+            amount += order.final_price
         return amount
 
     def total_withdraw(self):
