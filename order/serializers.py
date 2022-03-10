@@ -23,7 +23,7 @@ class OrderItemRetrieveSerializer(serializers.ModelSerializer):
 class OrderRetrieveSerializer(serializers.ModelSerializer):
     order_items = OrderItemRetrieveSerializer(many=True, read_only=True)
     customer = CustomerSerializer(read_only=True)
-    total_original_price = serializers.ReadOnlyField()
+    total_order_items_original_prices = serializers.ReadOnlyField()
     total_discount_amount = serializers.ReadOnlyField()
     final_price = serializers.ReadOnlyField()
     has_discount_code = serializers.ReadOnlyField()
@@ -59,7 +59,7 @@ class OrderItemDateTimeSerializer(serializers.ModelSerializer):
 
 
 class OrderSerializer(serializers.ModelSerializer):
-    total_original_price = serializers.ReadOnlyField()
+    total_order_items_original_prices = serializers.ReadOnlyField()
     total_discount_amount = serializers.ReadOnlyField()
     final_price = serializers.ReadOnlyField()
     has_discount_code = serializers.ReadOnlyField()
