@@ -6,7 +6,7 @@ from rest_framework.response import Response
 from rest_framework.generics import get_object_or_404, ListAPIView
 
 from logger.log_sentry import log_message_sentry
-from shop.models import Product, Shop, ShopDiscount, DeliveryPrice
+from shop.models import Product, Shop, ShopDiscount, DeliveryPrice, Shipment
 from user.models import Customer
 from .models import Order, Invoice, OrderItem, OrderShopDiscount
 from .serializers import OrderSerializer, CartSerializer, OrderItemSerializer, OrderRetrieveSerializer, \
@@ -21,6 +21,37 @@ class CartView(APIView):
     order_serializer_class = OrderSerializer
     invoice_serializer_class = InvoiceSerializer
     delivery_serializer_class = OrderDeliveryPriceSerializer
+
+    def cart_order_total_price(self, order_items):
+        s = 0
+        for item in order_items:
+            s += item['product']['final_price'] * item['count']
+        return s
+
+    def is_occasionally_free_in_country(self, shipment: Shipment, order_items):
+        if shipment.country_cost == Shipment.FreeDelivery.OCCASIONALLY_FREE:
+            return self.cart_order_total_price(order_items) > shipment.country_free_cost_from.free_from
+        return False
+
+    def is_free_in_country(self, shipment: Shipment, order_items):
+        return shipment.country_cost == Shipment.FreeDelivery.TOTALLY_FREE or self.is_occasionally_free_in_country(shipment, order_items)
+
+    def is_in_same_location(self, customer: Customer, shop: Shop):
+        return customer.city == shop.city and customer.province == shop.province
+
+    def is_occasionally_free_in_city(self, shipment: Shipment, order_items):
+        if shipment.city_cost == Shipment.FreeDelivery.OCCASIONALLY_FREE:
+            return self.cart_order_total_price(order_items) > shipment.city_free_cost_from.free_from
+        return False
+
+    def is_free_in_city(self, shipment: Shipment, order_items):
+        return shipment.city_cost == Shipment.FreeDelivery.TOTALLY_FREE or self.is_occasionally_free_in_city(shipment, order_items)
+
+    def is_free_in_same_location(self, customer: Customer, shipment: Shipment, order_items):
+        return self.is_in_same_location(customer, shipment.shop) and self.is_free_in_city(shipment, order_items)
+
+    def is_free_delivery(self, customer, shipment: Shipment, order_items):
+        return self.is_free_in_country(shipment, order_items) or self.is_free_in_same_location(customer, shipment, order_items)
 
     def post(self, request):     # create orders (just for customer)
         data = request.data
@@ -41,6 +72,7 @@ class CartView(APIView):
 
         for order_sample in data['cart']:
             delivery = get_object_or_404(DeliveryPrice, id=order_sample['delivery_id'], shipment__shop__id=order_sample['shop_id'])
+            is_free_delivery = self.is_free_delivery(customer, delivery.shipment, order_sample['order_items'])
 
             # Create Order Object
             order_data = {
@@ -60,8 +92,8 @@ class CartView(APIView):
                 'order': order.id,
                 'delivery_id': delivery.id,
                 'type': delivery.type,
-                'base': delivery.base,
-                'per_kilo': delivery.per_kilo,
+                'base': 0 if is_free_delivery else delivery.base,
+                'per_kilo': 0 if is_free_delivery else delivery.per_kilo,
                 'destination_province': customer.province,
                 'destination_city': customer.city,
                 'destination_address': customer.address + '\nکد پستی: ' + customer.postal_code,
