@@ -10,6 +10,8 @@ class PaymentInvoice(models.Model):
     token = models.CharField(max_length=50)
     created_at = models.DateTimeField(auto_now_add=True)
 
+    def __str__(self):
+        return f'id: {self.id} - {self.created_at}'
 
 class PaymentDetail(models.Model):  # for IPG
     payment_invoice = models.OneToOneField(PaymentInvoice, models.PROTECT)
@@ -24,6 +26,8 @@ class PaymentDetail(models.Model):  # for IPG
     def amount(self):
         return self.payment_invoice.amount
 
+    def __str__(self):
+        return f'id: {self.id} - {self.paid_at}'
 
 class Withdraw(models.Model):
     shop = models.ForeignKey('shop.Shop', models.PROTECT)
