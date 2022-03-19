@@ -13,6 +13,7 @@ class PaymentInvoice(models.Model):
     def __str__(self):
         return f'id: {self.id} - {self.created_at}'
 
+
 class PaymentDetail(models.Model):  # for IPG
     payment_invoice = models.OneToOneField(PaymentInvoice, models.PROTECT)
     ref_number = models.BigIntegerField()  # شماره ارجاع
@@ -28,6 +29,7 @@ class PaymentDetail(models.Model):  # for IPG
 
     def __str__(self):
         return f'id: {self.id} - {self.paid_at}'
+
 
 class Withdraw(models.Model):
     shop = models.ForeignKey('shop.Shop', models.PROTECT)

@@ -124,7 +124,7 @@ class PaymentView(APIView):
             except Exception as e:
                 capture_exception(error=e)
 
-        return Response(ser.data, status=status.HTTP_202_ACCEPTED)
+        return Response(payment_detail_ser.data, status=status.HTTP_202_ACCEPTED)
 
 
 class WithdrawView(APIView):
