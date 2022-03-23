@@ -1,7 +1,13 @@
 from rest_framework import serializers
 
 from .models import Shop, Product, ProductDiscount, BankCredit, ProductAttribute, ProductImage, Post, TagLocation, \
-    ShopDiscount, Shipment, DeliveryPrice, OccasionallyFreeDelivery
+    ShopDiscount, Shipment, DeliveryPrice, OccasionallyFreeDelivery, ShopCreationStep
+
+
+class ShopCreationStepSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ShopCreationStep
+        fields = '__all__'
 
 
 class DeliveryPriceSerializer(serializers.ModelSerializer):

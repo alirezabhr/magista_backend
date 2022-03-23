@@ -8,6 +8,23 @@ from user.models import User
 
 
 # Create your models here.
+class ShopCreationStep(models.Model):
+    REQUESTED = 'REQUESTED'
+    FORM_SUBMITTED = 'SUBMITTED'
+    CREATED = 'CREATED'
+
+    STEP_CHOICES = (
+        (REQUESTED, 'Requested'),
+        (FORM_SUBMITTED, 'Submitted'),
+        (CREATED, 'Created'),
+    )
+
+    instagram_username = models.CharField(max_length=30, unique=True)
+    phone = models.CharField(max_length=11, unique=True)
+    email = models.EmailField()
+    step = models.CharField(max_length=10, choices=STEP_CHOICES, default=REQUESTED)
+
+
 class Shop(models.Model):
     class PreparationTime(models.IntegerChoices):
         TWO_HOURS = 0
