@@ -13,11 +13,11 @@ from rest_framework.pagination import PageNumberPagination
 from logger.log_sentry import log_message_sentry
 from sms_service.sms_service import SMSService
 from .models import Shop, Product, BankCredit, ProductAttribute, Post, ProductDiscount, TagLocation, ProductImage, \
-    ShopDiscount, Shipment, DeliveryPrice
+    ShopDiscount, Shipment, DeliveryPrice, ShopCreationStep
 from .serializers import ShopSerializer, ProductSerializer, ShopPublicSerializer, ProductDiscountSerializer, \
     BankCreditSerializer, ProductAttributeSerializer, PostSerializer, \
     ProductImageSerializer, PostReadonlySerializer, TagLocationSerializer, ProductImageReadonlySerializer, \
-    ShopDiscountSerializer, ShipmentSerializer
+    ShopDiscountSerializer, ShipmentSerializer, ShopCreationStepSerializer
 from logger.serializers import IssueSerializer
 
 from scraping.service import scrape
@@ -50,6 +50,31 @@ class PostsListPagination(PageNumberPagination):
 
 
 # Create your views here.
+class ShopCreationView(APIView):
+    serializer_class = ShopCreationStepSerializer
+
+    @classmethod
+    def change_shop_creation_step(cls, instagram_username: str, step: str):
+        try:
+            obj = ShopCreationStep.objects.get(instagram_username=instagram_username)
+        except ShopCreationStep.DoesNotExist:
+            return
+        obj.step = step
+        obj.save()
+
+    def get(self, request):
+        try:
+            obj = ShopCreationStep.objects.get(instagram_username=request.data.get('instagram_username'))
+            ser = self.serializer_class(obj)
+            return Response(ser.data, status=status.HTTP_200_OK)
+        except ShopCreationStep.DoesNotExist:
+            ser = self.serializer_class(data=request.data)
+            if not ser.is_valid():
+                return Response(ser.errors, status=status.HTTP_400_BAD_REQUEST)
+            ser.save()
+            return Response(ser.data, status=status.HTTP_201_CREATED)
+
+
 class ShopCreationRequestView(APIView):
     serializer_class = IssueSerializer
 
@@ -391,6 +416,8 @@ class ShopView(APIView):
         response = ser.data
         response['delivery'] = shipment_data
 
+        ShopCreationView.change_shop_creation_step(instagram_username, ShopCreationStep.FORM_SUBMITTED)
+
         return Response(response, status=status.HTTP_201_CREATED)
 
     def get(self, request, vendor_pk):
@@ -569,6 +596,8 @@ class ShopPostView(ListAPIView):
                                        product_image_ser.errors, request.data, level='error')
                     return Response(product_image_ser.errors, status=status.HTTP_400_BAD_REQUEST)
                 product_image_ser.save()
+
+        ShopCreationView.change_shop_creation_step(instagram_username, ShopCreationStep.CREATED)
 
         return Response(status=status.HTTP_200_OK)
 
