@@ -363,7 +363,6 @@ class SaveMediaView(APIView):
 
 class ShopView(APIView):
     serializer_class = ShopSerializer
-    query_set = Shop.objects.all()
 
     def create_default_shipment(self, shop_id):
         data = {
@@ -421,7 +420,10 @@ class ShopView(APIView):
         return Response(response, status=status.HTTP_201_CREATED)
 
     def get(self, request, vendor_pk):
-        shops = self.query_set.filter(vendor_id=vendor_pk)
+        created_shops = ShopCreationStep.objects.filter(vendor_id=vendor_pk, step__exact=ShopCreationStep.CREATED)
+        shops = []
+        for created_shop in created_shops:
+            shops.append(Shop.objects.get(instagram_username=created_shop.instagram_username))
         ser = self.serializer_class(shops, many=True)
         return Response(ser.data, status=status.HTTP_200_OK)
 
