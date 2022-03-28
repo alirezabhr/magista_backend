@@ -1,9 +1,10 @@
 from django.contrib import admin
 
 # Register your models here.
-from .models import Shop, Shipment, OccasionallyFreeDelivery, DeliveryPrice, BankCredit, TagLocation, Post,\
-    ProductImage, Product, ProductDiscount, ShopDiscount
+from .models import ShopCreationStep, Shop, Shipment, OccasionallyFreeDelivery, DeliveryPrice, BankCredit, TagLocation,\
+    Post, ProductImage, Product, ProductDiscount, ShopDiscount
 
+admin.site.register(ShopCreationStep)
 admin.site.register(Shop)
 admin.site.register(Shipment)
 admin.site.register(DeliveryPrice)
