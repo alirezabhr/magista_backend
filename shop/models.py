@@ -21,9 +21,11 @@ class ShopCreationStep(models.Model):
 
     vendor = models.ForeignKey(User, on_delete=models.CASCADE, related_name='applicant')
     instagram_username = models.CharField(max_length=30, unique=True)
-    phone = models.CharField(max_length=11, unique=True)
     email = models.EmailField(blank=True)
     step = models.CharField(max_length=10, choices=STEP_CHOICES, default=REQUESTED)
+
+    def __str__(self):
+        return self.instagram_username
 
 
 class Shop(models.Model):
