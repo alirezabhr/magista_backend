@@ -19,9 +19,10 @@ class ShopCreationStep(models.Model):
         (CREATED, 'Created'),
     )
 
+    vendor = models.ForeignKey(User, on_delete=models.CASCADE, related_name='applicant')
     instagram_username = models.CharField(max_length=30, unique=True)
     phone = models.CharField(max_length=11, unique=True)
-    email = models.EmailField()
+    email = models.EmailField(blank=True)
     step = models.CharField(max_length=10, choices=STEP_CHOICES, default=REQUESTED)
 
 
@@ -34,7 +35,7 @@ class Shop(models.Model):
         ONE_WEEK = 4
 
     vendor = models.ForeignKey(User, on_delete=models.CASCADE, related_name='shop_vendor')
-    email = models.EmailField()
+    email = models.EmailField(blank=True)
     instagram_username = models.CharField(max_length=30, unique=True)
     instagram_id = models.BigIntegerField(unique=True)
     province = models.CharField(max_length=30)
