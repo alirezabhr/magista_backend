@@ -10,11 +10,13 @@ from user.models import User
 # Create your models here.
 class ShopCreationStep(models.Model):
     REQUESTED = 'REQUESTED'
+    VERIFIED = 'VERIFIED'
     FORM_SUBMITTED = 'SUBMITTED'
     CREATED = 'CREATED'
 
     STEP_CHOICES = (
         (REQUESTED, 'Requested'),
+        (VERIFIED, 'Verified'),
         (FORM_SUBMITTED, 'Submitted'),
         (CREATED, 'Created'),
     )
