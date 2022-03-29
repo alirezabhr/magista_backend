@@ -1,4 +1,3 @@
-import json
 import random
 
 from django.utils import timezone
@@ -18,7 +17,6 @@ from .serializers import ShopSerializer, ProductSerializer, ShopPublicSerializer
     BankCreditSerializer, ProductAttributeSerializer, PostSerializer, \
     ProductImageSerializer, PostReadonlySerializer, TagLocationSerializer, ProductImageReadonlySerializer, \
     ShopDiscountSerializer, ShipmentSerializer, ShopCreationStepSerializer
-from logger.serializers import IssueSerializer
 
 from scraping.service import scrape
 from utils import utils
@@ -62,35 +60,19 @@ class ShopCreationView(APIView):
         obj.step = step
         obj.save()
 
-    def get(self, request):
-        try:
-            obj = ShopCreationStep.objects.get(instagram_username=request.data.get('instagram_username'))
-            ser = self.serializer_class(obj)
-            return Response(ser.data, status=status.HTTP_200_OK)
-        except ShopCreationStep.DoesNotExist:
-            ser = self.serializer_class(data=request.data)
-            if not ser.is_valid():
-                return Response(ser.errors, status=status.HTTP_400_BAD_REQUEST)
-            ser.save()
-            return Response(ser.data, status=status.HTTP_201_CREATED)
+    def get(self, request, ig_username):
+        creation_step_obj = get_object_or_404(ShopCreationStep, instagram_username=ig_username)
+        ser = self.serializer_class(creation_step_obj)
+        return Response(ser.data)
 
-
-class ShopCreationRequestView(APIView):
-    serializer_class = IssueSerializer
-
-    def post(self, request):
-        data = request.data
-        data['user'] = request.user.pk
-        data['phone'] = request.user.phone
+    def post(self, request, ig_username):
         data = {
-            'message': json.dumps(data),
-            'location': 'SHOP CREATION REQUEST',
-            'critical': False,
-            'is_customer_project': False,
+            'vendor': request.data.get('vendor'),
+            'instagram_username': ig_username,
+            'email': '' if request.data.get('email') is None else request.data.get('email')
         }
         ser = self.serializer_class(data=data)
         if not ser.is_valid():
-            log_message_sentry('ShopCreationRequestView post', ser.errors, request.data)
             return Response(ser.errors, status=status.HTTP_400_BAD_REQUEST)
         ser.save()
 
@@ -98,9 +80,8 @@ class ShopCreationRequestView(APIView):
             SMSService().shop_request_sms()
         except Exception as e:
             capture_exception(error=e)
-            return Response(status=status.HTTP_503_SERVICE_UNAVAILABLE)
 
-        return Response(status=status.HTTP_201_CREATED)
+        return Response(ser.data, status=status.HTTP_201_CREATED)
 
 
 class ShopMediaQueryView(APIView):
@@ -116,9 +97,18 @@ class ShopMediaQueryView(APIView):
             response["error"] = ['آیدی پیج اینستاگرام الزامی است.']
             return Response(response, status=status.HTTP_400_BAD_REQUEST)
 
-        if Shop.objects.filter(instagram_username=instagram_username).exists():
-            response["error"] = [f'فروشگاه {instagram_username} موجود است.']
-            return Response(response, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            shop_creation_step_obj = ShopCreationStep.objects.get(instagram_username=instagram_username)
+            if shop_creation_step_obj.step == ShopCreationStep.CREATED:
+                response["error"] = [f'فروشگاه {instagram_username} موجود است.']
+                return Response(response, status=status.HTTP_400_BAD_REQUEST)
+
+        except ShopCreationStep.DoesNotExist:   # shop didn't request ever
+            return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        # if Shop.objects.filter(instagram_username=instagram_username).exists():
+        #     response["error"] = [f'فروشگاه {instagram_username} موجود است.']
+        #     return Response(response, status=status.HTTP_400_BAD_REQUEST)
 
         try:
             # data = scrape.scrape_instagram_media(scraper.username, scraper.password, instagram_username)
@@ -424,6 +414,8 @@ class ShopView(APIView):
         shops = []
         for created_shop in created_shops:
             shops.append(Shop.objects.get(instagram_username=created_shop.instagram_username))
+
+        shops = Shop.objects.filter(vendor_id=vendor_pk)
         ser = self.serializer_class(shops, many=True)
         return Response(ser.data, status=status.HTTP_200_OK)
 
