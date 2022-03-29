@@ -351,7 +351,7 @@ class SaveMediaView(APIView):
         return Response(status=status.HTTP_201_CREATED)
 
 
-class ShopView(APIView):
+class ShopVendorView(APIView):
     serializer_class = ShopSerializer
 
     def create_default_shipment(self, shop_id):
@@ -414,10 +414,16 @@ class ShopView(APIView):
         shops = []
         for created_shop in created_shops:
             shops.append(Shop.objects.get(instagram_username=created_shop.instagram_username))
-
-        shops = Shop.objects.filter(vendor_id=vendor_pk)
         ser = self.serializer_class(shops, many=True)
         return Response(ser.data, status=status.HTTP_200_OK)
+
+
+class ShopView(RetrieveAPIView):
+    # permission_classes = [IsShopOwner, IsAdminUser]   # TODO change the permission
+    serializer_class = ShopSerializer
+    queryset = Shop.objects.all()
+    lookup_field = 'instagram_username'
+    lookup_url_kwarg = 'ig_username'
 
 
 class ShopShipmentView(CreateAPIView):
