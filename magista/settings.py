@@ -50,7 +50,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     # third party
     'rest_framework',
-    'rest_framework_jwt',
+    'rest_framework_simplejwt',
     'corsheaders',
     # local apps
     'user',
@@ -94,9 +94,9 @@ TEMPLATES = [
 WSGI_APPLICATION = 'magista.wsgi.application'
 
 REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework_jwt.authentication.JSONWebTokenAuthentication',
-    ],
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    ),
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',
     ],
@@ -126,14 +126,10 @@ AUTH_PASSWORD_VALIDATORS = [
 
 AUTH_USER_MODEL = 'user.User'
 
-JWT_AUTH = {
-    'JWT_RESPONSE_PAYLOAD_HANDLER':
-        'rest_framework_jwt.utils.jwt_response_payload_handler',
-
-    'JWT_EXPIRATION_DELTA': datetime.timedelta(days=5),
-
-    'JWT_AUTH_HEADER_PREFIX': 'JWT',
-    'JWT_AUTH_COOKIE': None,
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': datetime.timedelta(hours=1),
+    'REFRESH_TOKEN_LIFETIME': datetime.timedelta(days=60),
+    'USER_ID_FIELD': 'id',
 }
 
 # Internationalization
