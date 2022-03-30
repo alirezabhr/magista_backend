@@ -12,11 +12,11 @@ from rest_framework.pagination import PageNumberPagination
 from logger.log_sentry import log_message_sentry
 from sms_service.sms_service import SMSService
 from .models import Shop, Product, BankCredit, ProductAttribute, Post, ProductDiscount, TagLocation, ProductImage, \
-    ShopDiscount, Shipment, DeliveryPrice, ShopCreationStep
+    ShopDiscount, Shipment, DeliveryPrice, ShopCreationStep, Category
 from .serializers import ShopSerializer, ProductSerializer, ShopPublicSerializer, ProductDiscountSerializer, \
     BankCreditSerializer, ProductAttributeSerializer, PostSerializer, \
     ProductImageSerializer, PostReadonlySerializer, TagLocationSerializer, ProductImageReadonlySerializer, \
-    ShopDiscountSerializer, ShipmentSerializer, ShopCreationStepSerializer
+    ShopDiscountSerializer, ShipmentSerializer, ShopCreationStepSerializer, CategorySerializer
 
 from scraping.service import scrape
 from utils import utils
@@ -48,6 +48,12 @@ class PostsListPagination(PageNumberPagination):
 
 
 # Create your views here.
+class CategoryView(ListAPIView):
+    permission_classes = (AllowAny,)
+    queryset = Category.objects.all().order_by('id')
+    serializer_class = CategorySerializer
+
+
 class ShopCreationView(APIView):
     serializer_class = ShopCreationStepSerializer
 

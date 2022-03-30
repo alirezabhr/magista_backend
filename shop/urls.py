@@ -3,6 +3,7 @@ from django.urls import path
 from . import views
 
 urlpatterns = [
+    path('category/', views.CategoryView.as_view(), name='category'),
     path('creation-step/<str:ig_username>/', views.ShopCreationView.as_view(), name='shop-creation-step'),
     path('media-query/', views.ShopMediaQueryView.as_view(), name='get-user-ig-media'),
     path('media-query/new-posts/', views.ShopMediaQueryNewPostsView.as_view()),
