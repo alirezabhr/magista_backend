@@ -5,7 +5,9 @@ from rest_framework.permissions import AllowAny
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from rest_framework_jwt.serializers import JSONWebTokenSerializer
+
+from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
 from .models import User, Otp
 from .serializers import UserSerializer, CustomerSerializer, OtpSerializer, UserPhoneSerializer
@@ -18,6 +20,15 @@ from sentry_sdk import capture_exception
 
 
 # Create your views here.
+def get_tokens_for_user(user):
+    refresh = RefreshToken.for_user(user)
+
+    return {
+        'refresh': str(refresh),
+        'access': str(refresh.access_token),
+    }
+
+
 class UserView(APIView):
     permission_classes = [AllowAny]
     query_set = User.objects.all()
@@ -53,15 +64,19 @@ class UserView(APIView):
             response['error'] = ["کاربری با این شماره موبایل وجود ندارد."]
             return Response(response, status=status.HTTP_404_NOT_FOUND)
 
+        ser = UserSerializer(user, data={'phone': phone, 'password': password})
+        if not ser.is_valid():
+            return Response(ser.errors, status=status.HTTP_400_BAD_REQUEST)
+
         user.set_password(raw_password=password)
         user.save()
 
-        ser = UserSerializer(user)
-        token_serializer = JSONWebTokenSerializer(data={"phone": user.phone, "password": password})
-        token_serializer.is_valid(raise_exception=True)
-
-        response.update(ser.data)
-        response.update({"token": token_serializer.validated_data.get("token")})
+        response = ser.data
+        tokens = get_tokens_for_user(user)
+        response.update({
+            "token": tokens['access'],
+            "refresh_token": tokens['refresh'],
+        })
         return Response(response, status=status.HTTP_200_OK)
 
 
@@ -74,11 +89,12 @@ class UserSignupView(APIView):
         ser = self.serializer_class(data=request.data)
         if ser.is_valid():
             user = ser.save()
-            password = self.request.data.get("password")
-            token_serializer = JSONWebTokenSerializer(data={"phone": user.phone, "password": password})
-            token_serializer.is_valid(raise_exception=True)
             response_data = ser.data
-            response_data.update({"token": token_serializer.validated_data.get("token")})
+            tokens = get_tokens_for_user(user)
+            response_data.update({
+                "token": tokens['access'],
+                "refresh_token": tokens['refresh'],
+            })
             return Response(response_data, status=status.HTTP_201_CREATED)
         else:
             return Response(ser.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -87,19 +103,21 @@ class UserSignupView(APIView):
 class UserLoginView(APIView):
     serializer_class = UserSerializer
     query_set = User.objects.all()
-    permission_classes = [AllowAny]
+    permission_classes = (AllowAny,)
 
     def post(self, request):
-        token_serializer = JSONWebTokenSerializer(data=request.data)
-
-        if token_serializer.is_valid():
-            user = self.query_set.get(phone=request.data.get("phone"))
-            ser = self.serializer_class(user)
-            response_data = ser.data
-            response_data.update({"token": token_serializer.validated_data.get("token")})
-            return Response(response_data, status=status.HTTP_200_OK)
-        else:
+        token_serializer = TokenObtainPairSerializer(data=request.data)
+        if not token_serializer.is_valid():
             return Response(token_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        tokens = token_serializer.validated_data
+        user = User.objects.get(phone=request.data.get('phone'))
+        ser = self.serializer_class(user)
+        response_data = ser.data
+        response_data.update({
+            "token": tokens['access'],
+            "refresh_token": tokens['refresh'],
+        })
+        return Response(response_data, status=status.HTTP_200_OK)
 
 
 class CustomerView(APIView):
