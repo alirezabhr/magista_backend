@@ -5,28 +5,50 @@ from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APIClient, APITestCase
 
-from shop.models import DeliveryPrice, Shipment, OccasionallyFreeDelivery
+from shop.models import DeliveryPrice, Shipment, OccasionallyFreeDelivery, Shop, Category
 
 
 # Create your tests here.
-class CartApiTest(APITestCase):
+class ShopCreation(APITestCase):
     def setUp(self) -> None:
+        username = '09123456789'
+        password = 'test_password'
         self.client = APIClient()
-        self.cart_url = reverse('cart')
+        self.vendor = self.create_vendor(username, password)
+        self.client.credentials(HTTP_AUTHORIZATION='Bearer ' + self.vendor['token'])
+        self.shop_creation_url = reverse('create-shop', kwargs={'vendor_pk': self.vendor['id']})
+        self.instagram_username = 'linkish.ir'
 
-    def test_cart_payment(self):
-        data = [
-            {
-                "product": 95,
-                "count": 1
-            },
-            {
-                "product": 85,
-                "count": 3
-            }
-        ]
-        # response = self.client.post(path=self.cart_url, data=json.dumps(data))
-        # self.assertEqual(response.status_code, 200)
+    def create_all_categories(self):
+        categories = (
+        'آرایشی و بهداشتی', 'پوشاک', 'صنایع دستی', 'دکوری و تزیینی', 'لوازم خانگی', 'گل و گیاه', 'مواد غذایی',
+        'عطاری', 'ورزش و سفر')
+        for c in categories:
+            category_obj = Category(name=c)
+            category_obj.save()
+
+    def create_vendor(self, phone, password):
+        url = reverse('signup')
+        data = {'phone': phone, 'password': password}
+        response = self.client.post(url, data)
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        return response.data
+
+    def test_create_shop(self):
+        data1 = {
+            'vendor': self.vendor['id'],
+            'email': '',
+            'instagram_username': self.instagram_username,
+            'instagram_id': 12324421213,
+            'category': 3,
+            'province': 'BC',
+            'city': 'shz',
+            'address': 'alley2 street404',
+            'bio': '',
+            'preparation': Shop.PreparationTime.THREE_DAYS,
+        }
+        response = self.client.post(self.shop_creation_url, data1)
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
 
 class ShopShipmentTests(APITestCase):
