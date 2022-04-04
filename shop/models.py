@@ -321,3 +321,6 @@ class ShopDiscount(models.Model):
     start_at = models.DateTimeField(null=True)
     finish_at = models.DateTimeField(null=True)
     created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f'{self.created_at} - {self.shop.instagram_username}'
