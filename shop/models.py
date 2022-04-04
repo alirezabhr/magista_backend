@@ -12,7 +12,7 @@ class Category(models.Model):
     name = models.CharField(max_length=30, unique=True)
 
     def __str__(self):
-        return self.name
+        return f'{self.id}: {self.name}'
 
 
 class ShopCreationStep(models.Model):
@@ -49,6 +49,7 @@ class Shop(models.Model):
     email = models.EmailField(blank=True)
     instagram_username = models.CharField(max_length=30, unique=True)
     instagram_id = models.BigIntegerField(unique=True)
+    category = models.ForeignKey(Category, on_delete=models.PROTECT, related_name='shop_category')
     province = models.CharField(max_length=30)
     city = models.CharField(max_length=30)
     address = models.TextField()
