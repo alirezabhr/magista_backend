@@ -3,7 +3,7 @@ import json
 
 
 class SMSService:
-    __api_key = "11TgeUybotjKAIzarfOEJXrXYbJcKHrhGsOD/qZ9FxU"
+    __api_key = "8ncARzg1/+JpK5INuktydxsFHvL1wtn4QAOKnrFE6IY"
     sender_number = "30005006006885"
 
     def __request_builder(self, url, body):
