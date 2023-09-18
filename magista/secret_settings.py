@@ -16,7 +16,7 @@ __debug_db = {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': 'magista',
         'USER': 'postgres',
-        'PASSWORD': 'alireza1379',
+        'PASSWORD': '@L!ReZ@_1379',
         'HOST': '127.0.0.1',
         'PORT': '5432',
     }
